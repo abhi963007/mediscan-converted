@@ -91,12 +91,17 @@ function loadTreatmentForm(patient) {
       </div>
       
       <div>
-        <label style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:#9CA3AF;margin-bottom:0.5rem;display:block;">Prescribe Medicine</label>
-        <div style="position:relative;">
-          <input type="text" id="med-search" placeholder="Search medicine…" class="input-field" oninput="searchMed(this.value)" autocomplete="off" />
-          <div id="med-results" style="position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #E5E7EB;border-radius:0.75rem;z-index:100;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);display:none;max-height:200px;overflow-y:auto;margin-top:0.25rem;"></div>
+        <label style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:#9CA3AF;margin-bottom:0.75rem;display:block;">Prescription Train</label>
+        <div style="position:relative; margin-bottom:1.25rem;">
+          <div class="search-bar">
+            <i data-lucide="pill" style="width:18px;height:18px;"></i>
+            <input type="text" id="med-search" placeholder="Search and add medicines to train…" oninput="searchMed(this.value)" autocomplete="off" />
+          </div>
+          <div id="med-results" style="position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #E5E7EB;border-radius:1rem;z-index:100;box-shadow:var(--shadow-premium);display:none;max-height:280px;overflow-y:auto;margin-top:0.5rem;animation:fadeIn 0.2s ease;"></div>
         </div>
-        <div id="selected-meds-list" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.75rem;"></div>
+        <div id="selected-meds-list" style="display:flex; flex-wrap:wrap; gap:1rem; min-height:100px; padding:0.5rem 0;">
+          <div class="empty-state" style="padding:2rem 0; width:100%;"><p style="font-size:0.75rem;opacity:0.5;">No medicines in train yet</p></div>
+        </div>
       </div>
 
       <div>
