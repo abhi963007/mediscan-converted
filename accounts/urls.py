@@ -1,5 +1,9 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
+from .views import (
+    RegisterView, ProfileView, UnapprovedUsersView, ApproveUserView, 
+    CustomTokenObtainPairView, CreateHospitalStaffView, DashboardStatsView,
+    HospitalAdminsListView, CreateHospitalAdminView, HospitalStaffListView,
     DeleteHospitalAdminView, UpdateStaffView, DeleteStaffView, ResetPasswordAPIView
 )
 

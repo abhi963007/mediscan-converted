@@ -11,6 +11,7 @@ urlpatterns = [
     path('features/', views.FeaturesView.as_view(),  name='features'),
     path('modules/',  views.ModulesView.as_view(),   name='modules'),
     path('support/',  views.SupportView.as_view(),   name='support'),
+    path('forgot-password/', views.ForgotPasswordView.as_view(), name='forgot-password'),
 
     # ── Dashboard root (client-side redirect by role) ─────────────
     path('dashboard/', views.DashboardRedirectView.as_view(), name='dashboard'),

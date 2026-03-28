@@ -2,7 +2,10 @@ from rest_framework import viewsets, filters, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Patient, Consultation, Prescription, PatientDocument
-from .serializers import PatientSerializer, ConsultationSerializer, PrescriptionSerializer, PatientDocumentSerializer
+from .serializers import (
+    PatientSerializer, PatientPersonalUpdateSerializer, 
+    ConsultationSerializer, PrescriptionSerializer, PatientDocumentSerializer
+)
 
 
 class PatientViewSet(viewsets.ModelViewSet):
@@ -11,17 +14,75 @@ class PatientViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['full_name', 'uhid', 'phone']
 
+    def get_serializer_class(self):
+        if self.request.user.role == 'patient' and (self.action in ['update', 'partial_update']):
+            return PatientPersonalUpdateSerializer
+        return PatientSerializer
+
     def get_queryset(self):
         user = self.request.user
+        qs = Patient.objects.all()
+        
+        # Manual filtering by UHID from query params
+        uhid = self.request.query_params.get('uhid')
+        if uhid:
+            return Patient.objects.filter(uhid=uhid)
+
         if user.role == 'patient' and hasattr(user, 'patient_profile'):
             return Patient.objects.filter(uhid=user.patient_profile.uhid)
-        return Patient.objects.all()
+        if user.role in ['receptionist', 'admin', 'hospital_admin', 'doctor']:
+            return qs
+        return Patient.objects.none()
+
+    def update(self, request, *args, **kwargs):
+        user = request.user
+        instance = self.get_object()
+        
+        # Security check: patients can only edit their own
+        if user.role == 'patient' and instance.user != user:
+             return Response({'error': 'You can only edit your own details.'}, status=status.HTTP_403_FORBIDDEN)
+             
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        user = request.user
+        instance = self.get_object()
+        
+        # Security check: patients can only edit their own
+        if user.role == 'patient' and instance.user != user:
+             return Response({'error': 'You can only edit your own details.'}, status=status.HTTP_403_FORBIDDEN)
+             
+        return super().partial_update(request, *args, **kwargs)
 
     def perform_destroy(self, instance):
         user = instance.user
         instance.delete()
         if user:
             user.delete()
+
+    @action(detail=False, methods=['get'], url_path='treatment-history')
+    def treatment_history(self, request):
+        user = request.user
+        if not hasattr(user, 'patient_profile'):
+             return Response({'error': 'Patient profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get consultations
+        from .models import Consultation
+        qs = Consultation.objects.filter(patient=user.patient_profile).order_by('-consultation_date')
+        
+        data = [{
+            'id': c.id,
+            'date': c.consultation_date.strftime('%d %b %Y, %I:%M %p') if c.consultation_date else '—',
+            'doctor_name': c.doctor.get_full_name() if c.doctor else 'Doctor',
+            'notes': c.chief_complaint or '',
+            'diagnosis': c.diagnosis or '',
+            'visit_type': c.visit_type or 'General',
+            'blood_pressure': c.blood_pressure or '—',
+            'temperature': c.temperature or '—',
+            'weight': c.weight or '—'
+        } for c in qs]
+        
+        return Response(data)
 
 
 class ConsultationViewSet(viewsets.ModelViewSet):

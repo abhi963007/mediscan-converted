@@ -159,6 +159,7 @@ class ResetPasswordAPIView(generics.GenericAPIView):
             return Response({'status': 'Success', 'message': 'Password has been updated.'})
         except CustomUser.DoesNotExist:
             return Response({'error': 'No account found with this username and email.'}, status=status.HTTP_404_NOT_FOUND)
+from rest_framework.views import APIView
 from django.db.models import Count, Sum
 from hospitals.models import Hospital, MedicineMaster
 from patients.models import Patient

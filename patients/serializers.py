@@ -66,3 +66,14 @@ class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = '__all__'
+
+
+class PatientPersonalUpdateSerializer(serializers.ModelSerializer):
+    """Restricted fields for patients to edit their own profile."""
+    class Meta:
+        model = Patient
+        fields = (
+            'full_name', 'age', 'gender', 'blood_group', 'phone', 'email', 'address',
+            'marital_status', 'occupation', 'emergency_contact', 
+            'emergency_contact_phone', 'emergency_contact_relation'
+        )

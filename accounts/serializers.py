@@ -20,6 +20,18 @@ class UserSerializer(serializers.ModelSerializer):
     def get_hospital_name(self, obj):
         return obj.hospital.name if obj.hospital else None
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if instance.role == 'patient' and hasattr(instance, 'patient_profile'):
+            pp = instance.patient_profile
+            ret['uhid'] = pp.uhid
+            ret['medical_history'] = pp.medical_history
+            ret['blood_group'] = pp.blood_group
+            ret['age'] = pp.age
+            ret['gender'] = pp.gender
+            ret['phone'] = pp.phone
+        return ret
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     

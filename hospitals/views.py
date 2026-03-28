@@ -62,6 +62,17 @@ class HospitalViewSet(viewsets.ModelViewSet):
         serializer = DoctorSlotSerializer(slots, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'], url_path='my-doctors')
+    def my_doctors(self, request):
+        if not request.user.hospital:
+            return Response({'error': 'No hospital linked to your account'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        from accounts.models import CustomUser
+        from accounts.serializers import UserSerializer
+        doctors = CustomUser.objects.filter(hospital=request.user.hospital, role='doctor')
+        serializer = UserSerializer(doctors, many=True)
+        return Response(serializer.data)
+
 
 class HospitalSettingsView(generics.RetrieveUpdateAPIView):
     serializer_class = HospitalSettingsSerializer
