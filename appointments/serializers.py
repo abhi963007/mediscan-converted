@@ -17,9 +17,11 @@ class AppointmentQueueSerializer(serializers.ModelSerializer):
 class AppointmentSerializer(serializers.ModelSerializer):
     patient_username = serializers.CharField(source='patient.username', read_only=True)
     patient_full_name = serializers.SerializerMethodField()
+    patient_name = serializers.SerializerMethodField()
     doctor_username = serializers.CharField(source='doctor.username', read_only=True)
     doctor_full_name = serializers.CharField(source='doctor.get_full_name', read_only=True)
     hospital_name = serializers.CharField(source='hospital.name', read_only=True)
+    slot_time = serializers.SerializerMethodField()
     queue = AppointmentQueueSerializer(read_only=True)
 
     class Meta:
@@ -31,6 +33,12 @@ class AppointmentSerializer(serializers.ModelSerializer):
         if hasattr(obj.patient, 'patient_profile') and obj.patient.patient_profile:
             return obj.patient.patient_profile.full_name
         return obj.patient.get_full_name() or obj.patient.username
+
+    def get_patient_name(self, obj):
+        return self.get_patient_full_name(obj)
+
+    def get_slot_time(self, obj):
+        return obj.time_slot.strftime('%H:%M') if obj.time_slot else "—"
 
     def create(self, validated_data):
         request = self.context.get('request')

@@ -141,12 +141,12 @@ async function loadSlots() {
   const slotSec = document.getElementById('slot-section');
   const sel     = document.getElementById('slot-select');
   try {
-    const slots = await Auth.get('/api/appointments/slots/');
+    const slots = await Auth.get('/api/hospitals/doctor-slots/');
     sel.innerHTML = '<option value="">Select a doctor slot…</option>';
     slots.forEach(s => {
       const opt = document.createElement('option');
-      opt.value = s.id;
-      opt.textContent = (s.doctor_name||'Doctor') + ' · ' + s.start_time + '–' + s.end_time;
+      opt.value = JSON.stringify(s); // Store the whole slot object
+      opt.textContent = (s.doctor_name||'Doctor') + ' (' + (s.hospital_name||'Hosp') + ') · ' + s.start_time.substring(0,5);
       sel.appendChild(opt);
     });
     slotSec.style.display = 'block';
@@ -154,18 +154,30 @@ async function loadSlots() {
 }
 
 async function bookAppointment() {
-  const slotId = document.getElementById('slot-select').value;
-  if (!slotId || !foundPatient) { showToast('Select a slot first.', 'error'); return; }
+  const slotData = document.getElementById('slot-select').value;
+  if (!slotData || !foundPatient) { showToast('Select a slot first.', 'error'); return; }
+  
   try {
-    await Auth.post('/api/appointments/', { patient: foundPatient.id, slot: slotId });
+    const s = JSON.parse(slotData);
+    const today = new Date().toISOString().slice(0,10);
+    const payload = {
+        patient: foundPatient.user_id || foundPatient.user, // Use user ID linked to patient record
+        doctor: s.doctor,
+        hospital: s.hospital,
+        appointment_date: today,
+        time_slot: s.start_time, // Explicitly provide required time_slot
+        appointment_time: s.start_time,
+        consultation_fee: s.consultation_fee,
+        appointment_mode: 'offline'
+    };
+    await Auth.post('/api/appointments/', payload);
     showToast('Appointment booked successfully!');
-    document.getElementById('scan-success').textContent = 'Appointment booked for ' + (foundPatient.full_name||foundPatient.username) + '.';
+    document.getElementById('scan-success').textContent = 'Appointment booked for ' + (foundPatient.full_name||foundPatient.username) + ' with Dr. ' + s.doctor_name;
     document.getElementById('scan-success').classList.add('show');
     document.getElementById('patient-result-card').style.display = 'none';
-    // Restart scanner for next patient
     setTimeout(resetScanner, 3000);
   } catch(e) { 
-    showToast('Failed to book appointment. Please check availability.', 'error'); 
+    showToast('Failed to book. ' + (e.error || ''), 'error'); 
   }
 }
 

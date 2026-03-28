@@ -32,20 +32,27 @@
     </div>
     <div class="alert alert-error" id="slot-error" style="margin-bottom:1rem;"></div>
     <form onsubmit="addSlot(event)" style="display:flex;flex-direction:column;gap:1rem;">
-      <select name="doctor" class="input-field" id="slot-doctor-select" required>
-        <option value="">Select Doctor</option>
-      </select>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-        <input type="time" name="start_time" class="input-field" required />
-        <input type="time" name="end_time"   class="input-field" required />
+      <div>
+        <label style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:#9CA3AF;margin-bottom:0.375rem;display:block;">Select Doctor</label>
+        <select name="doctor" class="input-field" id="slot-doctor-select" required>
+          <option value="">Select Doctor</option>
+        </select>
       </div>
-      <input type="number" name="max_patients" placeholder="Max Patients" min="1" max="100" class="input-field" />
-      <select name="day_of_week" class="input-field">
-        <option value="">All Days</option>
-        <option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option>
-        <option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option>
-      </select>
-      <div style="display:flex;gap:1rem;margin-top:0.25rem;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div>
+          <label style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:#9CA3AF;margin-bottom:0.375rem;display:block;">Start Time</label>
+          <input type="time" name="start_time" class="input-field" required />
+        </div>
+        <div>
+          <label style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:#9CA3AF;margin-bottom:0.375rem;display:block;">End Time</label>
+          <input type="time" name="end_time"   class="input-field" required />
+        </div>
+      </div>
+      <div>
+        <label style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:#9CA3AF;margin-bottom:0.375rem;display:block;">Consultation Fee (₹)</label>
+        <input type="number" name="consultation_fee" placeholder="500" class="input-field" required />
+      </div>
+      <div style="display:flex;gap:1rem;margin-top:0.5rem;">
         <button type="button" class="btn-secondary" style="flex:1;" onclick="closeModal('add-slot-modal')">Cancel</button>
         <button type="submit" class="btn-primary" style="flex:1;">Save Slot</button>
       </div>
@@ -57,63 +64,94 @@
 {% block extra_js %}
 <script>
 let doctors = [];
+
 document.addEventListener('DOMContentLoaded', async () => {
   const user = requireAuth(['hospital_admin']);
   if (!user) return;
   populateTopbar(user);
-  try {
-    const staff = await Auth.get('/api/auth/staff/');
-    doctors = staff.filter(s => s.role === 'doctor');
-    const sel = document.getElementById('slot-doctor-select');
-    doctors.forEach(d => { const opt = document.createElement('option'); opt.value = d.id; opt.textContent = d.full_name || d.username; sel.appendChild(opt); });
-  } catch(e) {}
-  await loadSlots();
+  loadDoctors();
+  loadSlots();
 });
 
-async function loadSlots() {
+async function loadDoctors() {
+  const sel = document.getElementById('slot-doctor-select');
   try {
-    const slots = await Auth.get('/api/appointments/slots/');
-    const wrap = document.getElementById('slots-wrap');
-    if (!slots.length) { wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🕐</div><p>No slots configured yet.</p></div>'; return; }
+    const resp = await Auth.get('/api/hospitals/my-doctors/');
+    doctors = resp.results || resp;
+    sel.innerHTML = '<option value="">Select a doctor…</option>';
+    doctors.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = 'Dr. ' + (d.full_name || d.username);
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    sel.innerHTML = '<option value="">Failed to load doctors</option>';
+  }
+}
+
+async function loadSlots() {
+  const wrap = document.getElementById('slots-wrap');
+  try {
+    const slots = await Auth.get('/api/hospitals/doctor-slots/');
+    if (!slots.length) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🕐</div><p>No slots configured yet.</p></div>';
+      return;
+    }
     wrap.innerHTML = `<table class="data-table">
-      <thead><tr><th>Doctor</th><th>Day</th><th>Start</th><th>End</th><th>Max Patients</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Doctor</th><th>Times</th><th>Fee (₹)</th><th>Actions</th></tr></thead>
       <tbody>${slots.map(s => `<tr>
-        <td><strong style="color:#111827;">${s.doctor_name || '—'}</strong></td>
-        <td>${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][s.day_of_week] || 'All'}</td>
-        <td>${s.start_time}</td>
-        <td>${s.end_time}</td>
-        <td><span class="badge badge-gray">${s.max_patients || '—'}</span></td>
-        <td><button class="btn-danger" style="padding:0.375rem 0.75rem;font-size:0.65rem;" onclick="deleteSlot(${s.id})">
-          <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
-        </button></td>
+        <td><strong style="color:#111827;">Dr. ${s.doctor_name || 'Doctor'}</strong></td>
+        <td style="color:#6B7280;">${s.start_time.substring(0,5)} – ${s.end_time.substring(0,5)}</td>
+        <td><span style="font-weight:900;color:var(--color-primary);">₹${s.consultation_fee}</span></td>
+        <td>
+          <button class="badge badge-red" style="cursor:pointer;border:none;" onclick="deleteSlot(${s.id})">Delete</button>
+        </td>
       </tr>`).join('')}</tbody>
     </table>`;
     if(window.lucide) lucide.createIcons();
   } catch(e) {
-    document.getElementById('slots-wrap').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Could not load slots.</p></div>';
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Could not load clinic slots.</p></div>';
   }
 }
 
 async function addSlot(e) {
   e.preventDefault();
-  const form = e.target; const errEl = document.getElementById('slot-error');
+  const form = e.target;
+  const errEl = document.getElementById('slot-error');
   errEl.classList.remove('show');
+  
+  const payload = {
+    doctor: form.doctor.value,
+    start_time: form.elements['start_time'].value,
+    end_time: form.elements['end_time'].value,
+    consultation_fee: form.elements['consultation_fee'] ? form.elements['consultation_fee'].value : 500
+  };
+
   try {
-    await Auth.post('/api/appointments/slots/', { doctor: form.doctor.value, start_time: form.start_time.value, end_time: form.end_time.value, max_patients: form.max_patients.value || 20, day_of_week: form.day_of_week.value || null });
-    closeModal('add-slot-modal'); showToast('Slot added!'); form.reset(); await loadSlots();
+    await Auth.post('/api/hospitals/doctor-slots/', payload);
+    closeModal('add-slot-modal');
+    showToast('Clinic slot added!');
+    form.reset();
+    loadSlots();
   } catch(err) {
-    const msg = typeof err === 'object' ? Object.values(err).flat().join(' ') : 'Failed.';
+    const msg = typeof err === 'object' ? Object.values(err).flat().join(' ') : 'Failed to add slot.';
     errEl.textContent = msg; errEl.classList.add('show');
   }
 }
 
 async function deleteSlot(id) {
-  if (!confirm('Delete this slot?')) return;
-  try { await Auth.del('/api/appointments/slots/' + id + '/'); showToast('Slot deleted.'); await loadSlots(); }
-  catch(e) { showToast('Failed.', 'error'); }
+  if (!confirm('Are you sure you want to remove this consultation slot?')) return;
+  try {
+    await Auth.delete('/api/hospitals/doctor-slots/' + id + '/');
+    showToast('Slot removed.');
+    loadSlots();
+  } catch(e) {
+    showToast('Failed to delete slot.', 'error');
+  }
 }
 
-function openModal(id)  { document.getElementById(id).classList.add('open'); if(window.lucide) lucide.createIcons(); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openModal(id)  { document.getElementById(id).style.display = 'flex'; if(window.lucide) lucide.createIcons(); }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 </script>
 {% endblock %}

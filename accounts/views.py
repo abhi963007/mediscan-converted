@@ -3,7 +3,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import CustomUser
-from .serializers import RegisterSerializer, UserSerializer, CustomTokenObtainPairSerializer, HospitalStaffSerializer
+from .serializers import (
+    RegisterSerializer, UserSerializer, CustomTokenObtainPairSerializer, 
+    HospitalStaffSerializer, HospitalAdminSerializer
+)
 from rest_framework import permissions
 
 class IsGlobalAdmin(permissions.BasePermission):
@@ -110,18 +113,16 @@ class DeleteStaffView(generics.DestroyAPIView):
 class CreateHospitalAdminView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
     permission_classes = (IsAuthenticated,)
-    serializer_class = RegisterSerializer
+    serializer_class = HospitalAdminSerializer
 
     def post(self, request, *args, **kwargs):
         if request.user.role != 'admin' and not request.user.is_superuser:
             return Response({'error': 'Permission denied. Only global admins can create hospital admins.'}, status=status.HTTP_403_FORBIDDEN)
         
-        request.data['role'] = 'hospital_admin'
-        request.data['is_approved'] = True
         return super().post(request, *args, **kwargs)
 
 class HospitalAdminsListView(generics.ListAPIView):
-    serializer_class = UserSerializer
+    serializer_class = HospitalAdminSerializer
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):

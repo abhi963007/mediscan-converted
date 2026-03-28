@@ -167,13 +167,24 @@ class MedicinePagination(PageNumberPagination):
     max_page_size = 100
 
 
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
+
+class IsGlobalAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.role == 'admin'
+
 class MedicineViewSet(viewsets.ModelViewSet):
     queryset = Medicine.objects.all().order_by('name')
     serializer_class = MedicineSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['name', 'category', 'generic_name', 'brand_name']
+    search_fields = ['name', 'manufacturer', 'medicine_type', 'generic_name', 'brand_name']
     pagination_class = MedicinePagination
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsGlobalAdmin()]
+        return [IsAuthenticated()]
 
     def perform_create(self, serializer):
         serializer.save(added_by=self.request.user)

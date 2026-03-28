@@ -27,13 +27,21 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        queryset = Appointment.objects.all().order_by('-appointment_date', '-time_slot')
+        
+        # Date filtering
+        date_param = self.request.query_params.get('date')
+        if date_param:
+            queryset = queryset.filter(appointment_date=date_param)
+
         if user.role == 'patient':
-            return Appointment.objects.filter(patient=user).order_by('-appointment_date', '-time_slot')
+            return queryset.filter(patient=user)
         elif user.role == 'doctor':
-            return Appointment.objects.filter(doctor=user).order_by('-appointment_date', '-time_slot')
+            return queryset.filter(doctor=user)
         elif user.role in ['receptionist', 'hospital_admin'] and user.hospital:
-            return Appointment.objects.filter(hospital=user.hospital).order_by('-appointment_date', '-time_slot')
-        return Appointment.objects.all().order_by('-appointment_date', '-time_slot')
+            return queryset.filter(hospital=user.hospital)
+        
+        return queryset
 
     @action(detail=True, methods=['post'], url_path='cancel')
     def cancel(self, request, pk=None):

@@ -225,3 +225,33 @@ class HospitalStaffSerializer(serializers.ModelSerializer):
             ret['department'] = instance.staff_profile.department
             ret['qualification'] = instance.staff_profile.qualification
         return ret
+class HospitalAdminSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ('id', 'username', 'password', 'first_name', 'last_name', 'full_name', 'email', 'role', 'hospital')
+        extra_kwargs = {
+            'role': {'read_only': True},
+            'hospital': {'required': True}
+        }
+
+    def create(self, validated_data):
+        user = CustomUser.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            password=validated_data['password'],
+            role='hospital_admin',
+            hospital=validated_data['hospital'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+        )
+        user.is_approved = True
+        user.save()
+        return user
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['hospital_name'] = instance.hospital.name if instance.hospital else ""
+        return ret

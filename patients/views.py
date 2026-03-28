@@ -60,6 +60,40 @@ class PatientViewSet(viewsets.ModelViewSet):
         if user:
             user.delete()
 
+    @action(detail=True, methods=['post'], url_path='treatment')
+    def treatment(self, request, pk=None):
+        if request.user.role != 'doctor':
+            return Response({'error': 'Permission denied. Only doctors can log treatment.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        patient = self.get_object()
+        data = request.data
+        
+        # Create Consultation
+        from .models import Consultation, Prescription
+        consultation = Consultation.objects.create(
+            patient=patient,
+            doctor=request.user,
+            hospital=request.user.hospital,
+            chief_complaint=data.get('notes', ''),
+            diagnosis=data.get('diagnosis', 'Pending Diagnosis'),
+            treatment_plan=data.get('notes', ''),
+            follow_up_date=data.get('followup_date') or None
+        )
+        
+        # Create multiple prescriptions
+        prescribed_medicines = data.get('medicines', [])
+        for m_data in prescribed_medicines:
+            from hospitals.models import Medicine
+            medicine = Medicine.objects.get(id=m_data['id'])
+            Prescription.objects.create(
+                consultation=consultation,
+                medicine=medicine,
+                dosage=m_data.get('dosage', ''),
+                instructions=m_data.get('dosage', '') # Fallback
+            )
+            
+        return Response({'status': 'Success', 'consultation_id': consultation.id})
+
     @action(detail=False, methods=['get'], url_path='treatment-history')
     def treatment_history(self, request):
         user = request.user

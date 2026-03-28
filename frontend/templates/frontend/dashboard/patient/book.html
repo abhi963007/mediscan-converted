@@ -72,24 +72,35 @@ async function loadSlots() {
   errEl.classList.remove('show'); sucEl.classList.remove('show');
 
   try {
-    const slots = await Auth.get('/api/appointments/slots/?date=' + date);
+    const slots = await Auth.get('/api/hospitals/doctor-slots/');
     const el    = document.getElementById('slots-list');
     if (!slots.length) {
-      el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">😔</div><p>No slots available for this date.</p></div>';
+      el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">😔</div><p>No active slots found. Please try another day or hospital.</p></div>';
       return;
     }
     el.innerHTML = slots.map(s => `
-      <div style="display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;border-radius:1rem;background:#F9FAFB;border:1px solid #F3F4F6;margin-bottom:0.75rem;">
-        <div style="width:2.75rem;height:2.75rem;border-radius:0.75rem;background:#ECFDF5;display:flex;align-items:center;justify-content:center;">
-          <i data-lucide="stethoscope" style="width:18px;height:18px;color:#0F6E56;"></i>
+      <div style="display:flex;align-items:center;gap:1rem;padding:1.25rem;border-radius:1.25rem;background:#fff;border:1px solid #F1F5F9;margin-bottom:1rem;box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+        <div style="width:3rem;height:3rem;border-radius:1rem;background:var(--color-primary-light);display:flex;align-items:center;justify-content:center;opacity:0.8;">
+          <i data-lucide="stethoscope" style="width:20px;height:20px;color:var(--color-primary-dark);"></i>
         </div>
         <div style="flex:1;">
-          <div style="font-size:0.875rem;font-weight:700;color:#111827;">${s.doctor_name||'Doctor'}</div>
-          <div style="font-size:0.65rem;color:#9CA3AF;">${s.start_time} – ${s.end_time} &nbsp;·&nbsp; Max ${s.max_patients||'—'} patients</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:0.9rem;font-weight:800;color:#111827;">Dr. ${s.doctor_name || 'Doctor'}</div>
+              <div style="font-size:0.7rem;font-weight:700;color:var(--color-primary);margin-top:0.125rem;text-transform:uppercase;letter-spacing:0.05em;">${s.hospital_name || 'Hospital'}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.85rem;font-weight:900;color:#111827;">₹${s.consultation_fee}</div>
+              <div style="font-size:0.6rem;font-weight:600;color:#9CA3AF;text-transform:uppercase;">Fee</div>
+            </div>
+          </div>
+          <div style="font-size:0.75rem;color:#6B7280;margin-top:0.75rem;display:flex;align-items:center;gap:0.4rem;">
+             <i data-lucide="clock" style="width:14px;height:14px;"></i> ${s.start_time.substring(0,5)} – ${s.end_time.substring(0,5)}
+          </div>
         </div>
-        <button onclick="bookSlot(${s.id}, '${(s.doctor_name||'Doctor').replace(/'/g,"\\'")}', '${s.start_time}')"
-          class="btn-primary" style="font-size:0.65rem;padding:0.5rem 1rem;white-space:nowrap;">
-          Book
+        <button onclick="bookSlot(${JSON.stringify(s).replace(/"/g, '&quot;')})"
+          class="btn-primary" style="font-size:0.7rem;padding:0.6rem 1.25rem;white-space:nowrap;border-radius:0.75rem;">
+          Book Now
         </button>
       </div>`).join('');
     if(window.lucide) lucide.createIcons();
@@ -99,19 +110,34 @@ async function loadSlots() {
   }
 }
 
-async function bookSlot(slotId, doctorName, time) {
+async function bookSlot(s) {
   const errEl = document.getElementById('book-error');
   const sucEl = document.getElementById('book-success');
+  const date  = document.getElementById('appt-date').value;
   errEl.classList.remove('show'); sucEl.classList.remove('show');
+  
   if (!myPatientId) { errEl.textContent = 'Could not identify your patient record.'; errEl.classList.add('show'); return; }
+  
   try {
-    await Auth.post('/api/appointments/', { patient: myPatientId, slot: slotId, appointment_date: document.getElementById('appt-date').value });
-    sucEl.textContent = `Appointment booked with ${doctorName} at ${time}!`;
+    const payload = {
+        patient: myPatientId,
+        doctor: s.doctor,
+        hospital: s.hospital,
+        appointment_date: date,
+        time_slot: s.start_time, // Explicitly provide required time_slot
+        appointment_time: s.start_time,
+        consultation_fee: s.consultation_fee,
+        appointment_mode: 'online'
+    };
+    await Auth.post('/api/appointments/', payload);
+    sucEl.textContent = `Success! Appointment booked with Dr. ${s.doctor_name} at ${s.start_time.substring(0,5)} on ${date}.`;
     sucEl.classList.add('show');
-    showToast('Appointment booked!');
+    showToast('Appointment booked successfully!');
     loadMyAppointments();
+    // Clear slots list to show success state
+    document.getElementById('slots-list').innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>Appointment confirmed. Check your upcoming visits.</p></div>';
   } catch(err) {
-    const msg = typeof err === 'object' ? Object.values(err).flat().join(' ') : 'Booking failed.';
+    const msg = typeof err === 'object' ? Object.values(err).flat().join(' ') : 'Booking failed. Try again.';
     errEl.textContent = msg; errEl.classList.add('show');
   }
 }
