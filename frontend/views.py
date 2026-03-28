@@ -38,6 +38,20 @@ CONTACTS_DATA = [
     {"icon": "life-buoy","bg": "#FEF3C7", "color": "#D97706", "title": "Help Center",   "desc": "Browse our documentation and FAQs below.", "href": "#", "link": "Browse FAQs ↓"},
 ]
 
+SCAN_INSTRUCTIONS = [
+    "Ask the patient to show their MediScan QR card",
+    "Scan the QR code or type the UHID manually",
+    "Review patient details and medical history",
+    "Select an available doctor slot to book an appointment",
+]
+
+REGISTER_PATIENT_TIPS = [
+    "Verify the patient's ID before registration",
+    "Use a strong password (share it securely)",
+    "Double-check blood group and phone number",
+    "Medical history helps doctors provide better care",
+]
+
 
 # ─────────────────────────────────────────
 # Public views
@@ -158,14 +172,44 @@ class HospitalSettingsView(View):
 
 class StaffOverviewView(View):
     def get(self, request):
-        return render(request, 'frontend/dashboard/staff/overview.html',
-                      {'allowed_roles': "['receptionist']"})
+        context = {
+            'allowed_roles': "['receptionist']",
+            'quick_actions': [
+                {
+                    'title': 'Register Patient',
+                    'url': '/dashboard/staff/register/',
+                    'icon': 'user-plus',
+                    'bg': '#ECFDF5',
+                    'color': '#0F6E56',
+                    'desc': 'Quick registration'
+                },
+                {
+                    'title': 'Scan QR Card',
+                    'url': '/dashboard/staff/scan/',
+                    'icon': 'scan',
+                    'bg': '#EFF6FF',
+                    'color': '#2563EB',
+                    'desc': 'Instant check-in'
+                },
+                {
+                    'title': 'View Appointments',
+                    'url': '/dashboard/staff/appointments/',
+                    'icon': 'calendar',
+                    'bg': '#FEF3C7',
+                    'color': '#D97706',
+                    'desc': 'Daily schedule'
+                },
+            ]
+        }
+        return render(request, 'frontend/dashboard/staff/overview.html', context)
 
 
 class StaffRegisterPatientView(View):
     def get(self, request):
-        return render(request, 'frontend/dashboard/staff/register_patient.html',
-                      {'allowed_roles': "['receptionist']"})
+        return render(request, 'frontend/dashboard/staff/register_patient.html', {
+            'allowed_roles': "['receptionist']",
+            'tips': REGISTER_PATIENT_TIPS,
+        })
 
 
 class StaffPatientsView(View):
@@ -176,8 +220,10 @@ class StaffPatientsView(View):
 
 class StaffScanView(View):
     def get(self, request):
-        return render(request, 'frontend/dashboard/staff/scan.html',
-                      {'allowed_roles': "['receptionist']"})
+        return render(request, 'frontend/dashboard/staff/scan.html', {
+            'allowed_roles': "['receptionist']",
+            'instructions': SCAN_INSTRUCTIONS,
+        })
 
 
 class StaffAppointmentsView(View):

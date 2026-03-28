@@ -28,15 +28,16 @@
 <div class="grid-2">
   <div class="card-premium">
     <div class="page-header-title" style="font-size:1.1rem;margin-bottom:1.25rem;">Quick Actions</div>
-    {% for action in "Register Patient:/dashboard/staff/register/:user-plus:#ECFDF5:#0F6E56|Scan QR Card:/dashboard/staff/scan/:scan:#EFF6FF:#2563EB|View Appointments:/dashboard/staff/appointments/:calendar:#FEF3C7:#D97706" %}
-    {% with parts=action.split:'|' %}{% with p=parts.0.split:':' %}
-    <a href="{{ p.1 }}" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;border-radius:1rem;background:#F9FAFB;border:1px solid #F3F4F6;text-decoration:none;margin-bottom:0.75rem;transition:background 0.15s;" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='#F9FAFB'">
-      <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:{{ p.3 }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <i data-lucide="{{ p.2 }}" style="width:18px;height:18px;color:{{ p.4 }};"></i>
+    {% for action in quick_actions %}
+    <a href="{{ action.url }}" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;border-radius:1rem;background:#F9FAFB;border:1px solid #F3F4F6;text-decoration:none;margin-bottom:0.75rem;transition:background 0.15s;" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='#F9FAFB'">
+      <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:{{ action.bg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i data-lucide="{{ action.icon }}" style="width:18px;height:18px;color:{{ action.color }};"></i>
       </div>
-      <div style="font-size:0.875rem;font-weight:700;color:#111827;">{{ p.0 }}</div>
+      <div>
+        <div style="font-size:0.875rem;font-weight:700;color:#111827;">{{ action.title }}</div>
+        <div style="font-size:0.7rem;color:#9CA3AF;">{{ action.desc }}</div>
+      </div>
     </a>
-    {% endwith %}{% endwith %}
     {% endfor %}
   </div>
 

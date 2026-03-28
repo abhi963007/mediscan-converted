@@ -74,7 +74,7 @@
     <div class="card-premium">
       <h4 style="font-family:var(--font-display);font-size:0.9rem;font-weight:800;color:#111827;margin-bottom:1rem;letter-spacing:-0.03em;">Tips</h4>
       <ul style="display:flex;flex-direction:column;gap:0.75rem;">
-        {% for tip in "Verify the patient's ID before registration|Use a strong password (share it securely)|Double-check blood group and phone number|Medical history helps doctors provide better care" %}
+        {% for tip in tips %}
         <li style="display:flex;align-items:flex-start;gap:0.75rem;font-size:0.8rem;color:#6B7280;">
           <i data-lucide="check-circle" style="width:16px;height:16px;color:#0F6E56;flex-shrink:0;margin-top:0.1rem;"></i>
           {{ tip }}

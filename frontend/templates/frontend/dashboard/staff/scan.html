@@ -15,83 +15,59 @@
 {% block content %}
 <div class="page-header">
   <div><div class="page-header-title">Scan Patient Card</div><div class="page-header-sub">Scan a QR health card or search manually by UHID</div></div>
-</div>
-
-<div class="grid-2">
-  <!-- Scanner / Manual Search -->
-  <div class="card-premium">
-    <h3 style="font-family:var(--font-display);font-size:1.1rem;font-weight:900;color:#111827;letter-spacing:-0.04em;margin-bottom:1.5rem;">Manual UHID Lookup</h3>
-    <div class="search-bar" style="margin-bottom:1.25rem;">
-      <i data-lucide="search" style="width:18px;height:18px;"></i>
-      <input type="text" id="uhid-input" placeholder="Enter UHID (e.g. MS-2024-00142)…" style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:0.8rem;text-transform:uppercase;" />
-    </div>
-    <button onclick="lookupUHID()" class="btn-primary" style="width:100%;padding:0.875rem;">
-      <i data-lucide="search" style="width:16px;height:16px;"></i> Look Up Patient
-    </button>
-
-    <div style="margin:1.5rem 0;display:flex;align-items:center;gap:1rem;">
-      <div style="flex:1;height:1px;background:#F3F4F6;"></div>
-      <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#D1D5DB;">or scan directly</span>
-      <div style="flex:1;height:1px;background:#F3F4F6;"></div>
-    </div>
-
-    <!-- QR Scanner area -->
-    <div id="qr-scan-area" style="background:#F9FAFB;border:2px dashed #D1D5DB;border-radius:1rem;padding:3rem;text-align:center;">
+</div><div class="card-premium" style="max-width:800px;margin:0 auto;">
+  <!-- QR Scanner area -->
+  <div id="qr-scan-area" style="background:#F9FAFB;border:2px dashed #D1D5DB;border-radius:1.5rem;padding:3rem;text-align:center;position:relative;overflow:hidden;min-height:400px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div id="scan-instructions-overlay">
       <div style="width:4rem;height:4rem;background:#ECFDF5;border-radius:1rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
         <i data-lucide="qr-code" style="width:2rem;height:2rem;color:#0F6E56;"></i>
       </div>
-      <p style="font-size:0.8rem;color:#9CA3AF;margin-bottom:1.25rem;">Point your camera at the patient's QR health card</p>
-      <button onclick="startScanner()" id="start-scan-btn" class="btn-secondary" style="font-size:0.75rem;">
-        <i data-lucide="camera" style="width:14px;height:14px;"></i> Start Camera Scan
-      </button>
-      <video id="qr-video" style="display:none;width:100%;border-radius:0.75rem;margin-top:1rem;"></video>
+      <p style="font-size:0.9rem;font-weight:700;color:#111827;margin-bottom:0.5rem;font-family:var(--font-display);">Ready to Scan</p>
+      <p style="font-size:0.8rem;color:#9CA3AF;margin-bottom:1.5rem;">Align the patient's health card QR code within the frame</p>
     </div>
-
-    <div class="alert alert-error"   id="scan-error"   style="margin-top:1rem;"></div>
-    <div class="alert alert-success" id="scan-success" style="margin-top:1rem;"></div>
+    
+    <div id="scanner-container" style="width:100%;max-width:500px;border-radius:1rem;overflow:hidden;box-shadow:var(--shadow-premium);"></div>
   </div>
 
+  <div class="alert alert-error"   id="scan-error"   style="margin-top:1.5rem;"></div>
+  <div class="alert alert-success" id="scan-success" style="margin-top:1.5rem;"></div>
+
   <!-- Patient result + Book Appointment -->
-  <div>
-    <div class="card-premium" id="patient-result-card" style="display:none;margin-bottom:1.5rem;">
-      <div id="patient-result-body"></div>
-      <div id="slot-section" style="margin-top:1.5rem;display:none;">
-        <h4 style="font-family:var(--font-display);font-size:0.9rem;font-weight:800;color:#111827;margin-bottom:1rem;letter-spacing:-0.03em;">Book Appointment</h4>
-        <select id="slot-select" class="input-field" style="margin-bottom:0.875rem;">
+  <div id="patient-result-card" style="display:none;margin-top:2rem;border-top:1px solid #F3F4F6;padding-top:2rem;">
+    <div id="patient-result-body"></div>
+    <div id="slot-section" style="margin-top:1.5rem;display:none;">
+      <h4 style="font-family:var(--font-display);font-size:0.9rem;font-weight:800;color:#111827;margin-bottom:1rem;letter-spacing:-0.03em;">Book Appointment</h4>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:0.75rem;">
+        <select id="slot-select" class="input-field">
           <option value="">Select a doctor slot…</option>
         </select>
-        <button onclick="bookAppointment()" class="btn-primary" style="width:100%;">
-          <i data-lucide="calendar-plus" style="width:16px;height:16px;"></i> Confirm Appointment
+        <button onclick="bookAppointment()" class="btn-primary">
+          <i data-lucide="calendar-plus" style="width:16px;height:16px;"></i> Confirm Booking
         </button>
       </div>
-    </div>
-
-    <div class="card-premium">
-      <h4 style="font-family:var(--font-display);font-size:0.9rem;font-weight:800;color:#111827;margin-bottom:1rem;letter-spacing:-0.03em;">Instructions</h4>
-      <ul style="display:flex;flex-direction:column;gap:0.75rem;">
-        {% for tip in "Ask the patient to show their MediScan QR card|Scan the QR code or type the UHID manually|Review patient details and medical history|Select an available doctor slot to book an appointment" %}
-        <li style="display:flex;gap:0.75rem;font-size:0.8rem;color:#6B7280;align-items:flex-start;">
-          <span style="width:1.5rem;height:1.5rem;background:#ECFDF5;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.6rem;font-weight:900;color:#0F6E56;">{{ forloop.counter }}</span>
-          {{ tip }}
-        </li>
-        {% endfor %}
-      </ul>
     </div>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<!-- QR Code Scanner Library -->
+<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
 let foundPatient = null;
+let html5QrCode = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   const user = requireAuth(['receptionist']);
-  if (user) populateTopbar(user);
+  if (user) {
+    populateTopbar(user);
+    // Auto-start scanner
+    setTimeout(startScanner, 500);
+  }
 });
 
-async function lookupUHID() {
-  const uhid = document.getElementById('uhid-input').value.trim();
+async function lookupUHID(uhidInput) {
+  const uhid = uhidInput;
   if (!uhid) return;
   const errEl = document.getElementById('scan-error');
   const sucEl = document.getElementById('scan-success');
@@ -100,10 +76,19 @@ async function lookupUHID() {
   try {
     const patients = await Auth.get('/api/patients/?uhid=' + encodeURIComponent(uhid));
     const p = Array.isArray(patients) ? patients[0] : patients;
-    if (!p) { errEl.textContent = 'No patient found with UHID: ' + uhid; errEl.classList.add('show'); return; }
+    if (!p) { 
+        errEl.textContent = 'No patient found with decoded UHID: ' + uhid; 
+        errEl.classList.add('show'); 
+        // Restart scanner after a short delay if not found
+        setTimeout(startScanner, 2000);
+        return; 
+    }
     showPatient(p);
+    showToast('Patient record retrieved successfully.');
   } catch(e) {
-    errEl.textContent = 'Lookup failed. Please try again.'; errEl.classList.add('show');
+    errEl.textContent = 'Lookup failed. Connection error.'; 
+    errEl.classList.add('show');
+    setTimeout(startScanner, 3000);
   }
 }
 
@@ -156,14 +141,55 @@ async function bookAppointment() {
   if (!slotId || !foundPatient) { showToast('Select a slot first.', 'error'); return; }
   try {
     await Auth.post('/api/appointments/', { patient: foundPatient.id, slot: slotId });
-    showToast('Appointment booked!');
+    showToast('Appointment booked successfully!');
     document.getElementById('scan-success').textContent = 'Appointment booked for ' + (foundPatient.full_name||foundPatient.username) + '.';
     document.getElementById('scan-success').classList.add('show');
-  } catch(e) { showToast('Failed to book appointment.', 'error'); }
+    document.getElementById('patient-result-card').style.display = 'none';
+    // Restart scanner for next patient
+    setTimeout(startScanner, 3000);
+  } catch(e) { 
+    showToast('Failed to book appointment. Please check availability.', 'error'); 
+  }
 }
 
-function startScanner() {
-  showToast('Camera QR scanning requires a library like html5-qrcode. Please use UHID lookup instead.', 'error');
+async function startScanner() {
+  if (html5QrCode) return;
+  
+  const container = document.getElementById('scanner-container');
+  const overlay   = document.getElementById('scan-instructions-overlay');
+  
+  html5QrCode = new Html5Qrcode("scanner-container");
+
+  try {
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        // Success
+        lookupUHID(decodedText);
+        stopScanner();
+      },
+      (errorMessage) => {
+        // quiet
+      }
+    );
+    overlay.style.display = 'none';
+  } catch (err) {
+    showToast('Camera access denied. Please enable camera permissions.', 'error');
+    overlay.style.display = 'block';
+  }
 }
+
+function stopScanner() {
+  if (html5QrCode) {
+    html5QrCode.stop().then(() => {
+      html5QrCode = null;
+    }).catch(err => {
+      console.error(err);
+      html5QrCode = null;
+    });
+  }
+}
+</script>
 </script>
 {% endblock %}

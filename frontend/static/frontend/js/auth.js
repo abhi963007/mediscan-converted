@@ -2,7 +2,7 @@
  * MediScan – Auth Manager (JWT via localStorage)
  * Mirrors the React AuthContext logic
  */
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = window.location.origin;
 
 const Auth = {
   getToken()  { return localStorage.getItem('access'); },
