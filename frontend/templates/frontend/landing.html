@@ -1,204 +1,140 @@
 {% extends "frontend/base.html" %}
 {% load static %}
-
-{% block title %}MediScan – Healthcare At Every Scan{% endblock %}
-{% block meta_description %}MediScan HMS: QR-based patient cards, full medical history in one place, and access from any hospital.{% endblock %}
+{% block title %}MediScan – Smart Healthcare QR System{% endblock %}
 
 {% block body %}
-
-<!-- ─── Navbar ─── -->
-<nav class="public-nav" id="main-nav">
+<!-- ───── Navbar ───── -->
+<nav class="public-nav">
   <div class="public-nav-inner">
-    <a href="/" class="nav-brand" style="text-decoration:none;">
-      <div class="nav-brand-icon">
-        <i data-lucide="qr-code" style="width:24px;height:24px;"></i>
-      </div>
-      <div>
-        <div class="nav-brand-name">Medi<span>Scan</span></div>
-        <div class="nav-brand-sub">Health System</div>
-      </div>
+    <a href="/" class="nav-brand">
+      <div class="nav-brand-icon"><i data-lucide="qr-code" style="width:24px;height:24px;"></i></div>
+      <div><div class="nav-brand-name">Medi<span>Scan</span></div><div class="nav-brand-sub">Health System</div></div>
     </a>
-
     <div class="nav-links">
       <a href="/modules/">How It Works</a>
       <a href="/features/">Features</a>
       <a href="/support/">Help</a>
     </div>
-
-    <a href="/dashboard/" class="nav-cta">Go to Dashboard</a>
+    <div style="display:flex;gap:1rem;align-items:center;">
+      <a href="/login/" style="font-size:0.75rem;font-weight:700;color:#6B7280;text-decoration:none;">Login</a>
+      <a href="/register/" class="nav-cta">Get Started</a>
+    </div>
   </div>
 </nav>
 
-<!-- ─── Hero Section ─── -->
-<section style="position:relative;padding:12rem 3rem 8rem;overflow:hidden;">
-  <!-- Background blobs -->
-  <div style="position:absolute;top:0;right:-10%;width:60%;height:100%;background:radial-gradient(ellipse,rgba(16,185,129,0.07),transparent 70%);border-radius:50%;z-index:-1;"></div>
-  <div style="position:absolute;bottom:0;left:-10%;width:40%;height:60%;background:radial-gradient(ellipse,rgba(59,130,246,0.05),transparent 70%);border-radius:50%;z-index:-1;"></div>
-
-  <div class="container" style="display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;max-width:80rem;">
-    <div class="animate-fade-in-up">
-      <!-- Badge -->
-      <div style="display:inline-flex;align-items:center;gap:0.75rem;padding:0.625rem 1.25rem;border-radius:999px;background:#ECFDF5;border:1px solid #A7F3D0;margin-bottom:2.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-        <i data-lucide="shield-check" style="width:16px;height:16px;color:#0F6E56;"></i>
-        <span style="font-size:0.55rem;font-weight:900;letter-spacing:0.2em;text-transform:uppercase;color:#065F46;font-family:'Montserrat',sans-serif;">Trusted by Hospitals Everywhere</span>
+<!-- ───── Hero Section ───── -->
+<section style="padding:12rem 3rem 8rem;background:radial-gradient(circle at top right,rgba(16,185,129,0.08),transparent),radial-gradient(circle at bottom left,rgba(59,130,246,0.05),transparent);">
+  <div class="container" style="display:flex;align-items:center;gap:4rem;">
+    <!-- Hero Text -->
+    <div style="flex:1.2;" class="animate-fade-in-up">
+      <div style="display:inline-flex;align-items:center;gap:0.75rem;padding:0.625rem 1.5rem;border-radius:999px;background:#ECFDF5;border:1px solid #A7F3D0;margin-bottom:2rem;">
+        <span style="display:inline-block;width:8px;height:8px;background:#10B981;border-radius:50%;box-shadow:0 0 12px #10B981;animation:pulse 2s infinite;"></span>
+        <span style="font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:0.25em;color:#0F6E56;font-family:'Montserrat',sans-serif;">Future of Healthcare</span>
       </div>
-
-      <h1 style="font-size:clamp(3.5rem,7vw,6.5rem);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-0.05em;line-height:0.85;color:#111827;margin-bottom:2.5rem;font-family:'Manrope',sans-serif;">
-        Healthcare <br>
-        At Every <span style="color:#0F6E56;position:relative;">Scan.</span>
+      <h1 style="font-size:clamp(3.5rem,8vw,6.5rem);font-weight:900;line-height:0.9;font-style:italic;text-transform:uppercase;letter-spacing:-0.05em;color:#111827;margin-bottom:2rem;font-family:'Manrope',sans-serif;">
+        ONE SCAN.<br/><span style="color:var(--color-primary);">ONE RECORD.</span><br/>LIFE SAVED.
       </h1>
-
-      <p style="font-size:1.25rem;font-weight:500;color:#6B7280;max-width:32rem;margin-bottom:3rem;line-height:1.7;font-family:'Montserrat',sans-serif;">
-        Making patient care easier with QR cards, full medical history in one place, and access from any hospital.
+      <p style="font-size:1.15rem;color:#6B7280;max-width:32rem;line-height:1.7;margin-bottom:3rem;font-family:'Montserrat',sans-serif;">
+        MediScan unifies clinical workflows into a single digital health record accessible via a unique patient QR card. Secure, instant, and universal.
       </p>
-
-      <div style="display:flex;gap:1.25rem;flex-wrap:wrap;">
-        <a href="/register/" class="btn-primary" style="padding:1rem 2rem;border-radius:1rem;font-size:0.6rem;font-weight:900;letter-spacing:0.2em;text-transform:uppercase;font-family:'Montserrat',sans-serif;box-shadow:0 8px 32px rgba(15,110,86,0.2);">
-          Register as Patient &rarr;
+      <div style="display:flex;gap:1.5rem;align-items:center;">
+        <a href="/register/" class="btn-primary" style="padding:1.25rem 3rem;border-radius:1.25rem;font-size:0.8rem;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">Create Your Card</a>
+        <a href="/modules/" style="display:flex;align-items:center;gap:0.75rem;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;color:#111827;text-decoration:none;font-family:'Montserrat',sans-serif;">
+          <div style="width:2.5rem;height:2.5rem;border-radius:50%;border:1px solid #E5E7EB;display:flex;align-items:center;justify-content:center;"><i data-lucide="play" style="width:14px;height:14px;fill:currentColor;"></i></div>
+          How It Works
         </a>
-        <a href="/modules/" class="btn-secondary" style="padding:1rem 2rem;border-radius:1rem;font-size:0.6rem;font-weight:900;letter-spacing:0.2em;text-transform:uppercase;font-family:'Montserrat',sans-serif;">
-          See All Features
-        </a>
-      </div>
-
-      <!-- Social proof -->
-      <div style="margin-top:4rem;padding:2rem;background:rgba(249,250,251,0.7);border-radius:2.5rem;border:1px solid #F3F4F6;display:inline-flex;align-items:center;gap:2rem;">
-        <div style="display:flex;gap:-1rem;">
-          {% for i in "1234" %}
-          <div style="width:3.5rem;height:3.5rem;border-radius:1rem;border:4px solid white;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.1);margin-left:{% if not forloop.first %}-1rem{% else %}0{% endif %};">
-            <img src="https://i.pravatar.cc/150?u=medical{{ forloop.counter }}" alt="Doctor" style="width:100%;height:100%;object-fit:cover;filter:grayscale(100%);" />
-          </div>
-          {% endfor %}
-        </div>
-        <div>
-          <div style="font-size:2rem;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-0.04em;color:#111827;line-height:1;font-family:'Manrope',sans-serif;" class="stat-count-hero" data-value="12000">0</div>
-          <div style="font-size:0.55rem;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#9CA3AF;margin-top:0.25rem;">Doctors Using MediScan</div>
-        </div>
       </div>
     </div>
 
-    <!-- Right: Visual card -->
-    <div style="position:relative;" class="animate-fade-in-up" id="hero-visual">
-      <div style="position:absolute;inset:0;background:linear-gradient(135deg,#0F6E56,#3B82F6);opacity:0.15;filter:blur(80px);border-radius:50%;animation:pulse-glow 4s ease infinite;"></div>
-      <div style="position:relative;padding:3rem;background:rgba(255,255,255,0.4);backdrop-filter:blur(24px);border-radius:5rem;border:1px solid rgba(255,255,255,0.6);box-shadow:0 40px 80px rgba(0,0,0,0.08);">
-
-        <!-- Mock QR card visual -->
-        <div class="qr-card" style="margin-bottom:1.5rem;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-            <div>
-              <div style="font-size:0.55rem;font-weight:900;letter-spacing:0.2em;text-transform:uppercase;opacity:0.7;margin-bottom:0.5rem;">Patient Health Card</div>
-              <div style="font-size:1.5rem;font-weight:900;font-style:italic;letter-spacing:-0.04em;">Raj Kumar</div>
-              <div style="font-size:0.65rem;font-weight:700;opacity:0.7;margin-top:0.25rem;">UHID: MS-2024-00142</div>
-            </div>
-            <div style="width:5rem;height:5rem;background:rgba(255,255,255,0.15);border-radius:1rem;display:flex;align-items:center;justify-content:center;">
-              <i data-lucide="qr-code" style="width:3rem;height:3rem;color:white;opacity:0.9;"></i>
-            </div>
-          </div>
-          <div style="margin-top:1.5rem;display:flex;gap:1rem;">
-            <span style="background:rgba(255,255,255,0.2);padding:0.375rem 0.875rem;border-radius:999px;font-size:0.6rem;font-weight:800;letter-spacing:0.1em;">O+ Blood</span>
-            <span style="background:rgba(255,255,255,0.2);padding:0.375rem 0.875rem;border-radius:999px;font-size:0.6rem;font-weight:800;letter-spacing:0.1em;">28 Years</span>
-            <span style="background:rgba(255,255,255,0.2);padding:0.375rem 0.875rem;border-radius:999px;font-size:0.6rem;font-weight:800;letter-spacing:0.1em;">Male</span>
-          </div>
-        </div>
-
+    <!-- Hero Visual -->
+    <div style="flex:1;position:relative;" class="animate-fade-in-up" style="animation-delay:0.2s;">
+      <div style="position:relative;width:100%;aspect-ratio:1;background:linear-gradient(135deg,#10B981,#059669);border-radius:4rem;box-shadow:0 40px 100px -20px rgba(16,185,129,0.4);display:flex;align-items:center;justify-content:center;transform:rotate(-3deg);">
+        <i data-lucide="qr-code" style="width:50%;height:50%;color:white;opacity:0.95;"></i>
+        
         <!-- Floating badge 1 -->
-        <div style="position:absolute;top:-1.5rem;right:-2rem;background:white;padding:1.25rem 1.5rem;border-radius:2rem;box-shadow:0 16px 40px rgba(0,0,0,0.1);border:1px solid #F3F4F6;display:flex;align-items:center;gap:1rem;animation:float 4s ease infinite;">
-          <div style="width:2.5rem;height:2.5rem;background:#3B82F6;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;">
-            <i data-lucide="zap" style="width:16px;height:16px;"></i>
+        <div style="position:absolute;top:-2rem;right:-2rem;background:white;padding:1.5rem;border-radius:2.5rem;box-shadow:0 20px 40px rgba(0,0,0,0.1);border:1px solid #F3F4F6;display:flex;items-center;gap:1rem;animation:float 6s ease infinite;">
+          <div style="width:3rem;height:3rem;background:#F5F3FF;border-radius:1rem;display:flex;align-items:center;justify-content:center;color:#7C3AED;">
+             <i data-lucide="shield-check" style="width:20px;height:20px;"></i>
           </div>
           <div>
-            <div style="font-size:0.55rem;font-weight:900;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.15em;font-family:'Montserrat',sans-serif;">Response Time</div>
-            <div style="font-size:1.25rem;font-weight:900;font-style:italic;text-transform:uppercase;color:#111827;font-family:'Manrope',sans-serif;">0.2ms</div>
+            <div style="font-size:0.55rem;font-weight:900;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.15em;font-family:'Montserrat',sans-serif;">Security Rating</div>
+            <div style="font-size:1.25rem;font-weight:900;font-style:italic;text-transform:uppercase;color:#111827;font-family:'Manrope',sans-serif;">Bank Grade</div>
           </div>
         </div>
-
-        <!-- Floating badge 2 -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2rem;margin-bottom:10rem;">
-      {% for f in features %}
-      <div class="card-premium animate-fade-in-up" style="animation-delay:{{ forloop.counter0 }}00ms;">
-        <div style="width:3.5rem;height:3.5rem;border-radius:1.25rem;background:{{f.bg}};display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;">
-          <i data-lucide="{{f.icon}}" style="width:1.5rem;height:1.5rem;color:{{f.color}};"></i>
-        </div>
-        <h3 style="font-size:1.1rem;font-weight:800;color:#111827;margin-bottom:0.75rem;letter-spacing:-0.03em;font-family:'Manrope';">{{ f.title }}</h3>
-        <p style="font-size:0.85rem;color:#6B7280;line-height:1.7;">{{ f.desc }}</p>
       </div>
-      {% endfor %}
-    </div>
     </div>
   </div>
 </section>
 
-<!-- ─── Stats Section ─── -->
+<!-- ───── Stats Section ───── -->
 <section style="background:#fff;padding:8rem 3rem;border-top:1px solid #F3F4F6;border-bottom:1px solid #F3F4F6;">
-  <div class="container" style="display:flex;justify-content:space-between;align-items:center;gap:2rem;flex-wrap:wrap;">
-    <!-- Stats section -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2.5rem;margin-bottom:10rem;">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:3rem;">
       {% for item in stats %}
-      <div class="animate-fade-in-up" style="text-align:center;animation-delay:{{ forloop.counter0 }}00ms;">
-        <div style="font-size:3.5rem;font-weight:900;color:var(--color-primary);font-family:'Manrope';margin-bottom:0.5rem;font-style:italic;">{{ item.value }}</div>
-        <div style="font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:0.25em;color:#9CA3AF;font-family:'Montserrat';">{{ item.label }}</div>
+      <div style="text-align:center;" class="animate-fade-in-up" style="animation-delay:{{ forloop.counter0 }}00ms;">
+        <div style="font-size:4rem;font-weight:900;font-style:italic;letter-spacing:-0.05em;color:#111827;margin-bottom:0.5rem;font-family:'Manrope',sans-serif;">{{ item.value }}</div>
+        <div style="font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:0.3em;color:#10B981;font-family:'Montserrat',sans-serif;">{{ item.label }}</div>
       </div>
       {% endfor %}
     </div>
   </div>
 </section>
 
-<!-- ─── CTA Section ─── -->
-<section style="padding:10rem 3rem;">
+<!-- ───── Features Section ───── -->
+<section style="padding:10rem 3rem;background:#F9FAFB;">
   <div class="container">
-    <div style="position:relative;overflow:hidden;background:linear-gradient(135deg,#0F6E56,#014733);border-radius:5rem;padding:6rem;text-align:center;color:white;box-shadow:0 40px 80px rgba(15,110,86,0.2);">
-      <div style="position:absolute;top:0;right:0;opacity:0.05;pointer-events:none;">
-        <i data-lucide="heart" style="width:400px;height:400px;"></i>
+    <div style="text-align:center;margin-bottom:6rem;" class="animate-fade-in-up">
+      <h2 style="font-size:clamp(2.5rem,5vw,4rem);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-0.04em;color:#111827;margin-bottom:1.5rem;font-family:'Manrope',sans-serif;">Intelligent Healthcare</h2>
+      <p style="font-size:1.1rem;color:#6B7280;max-width:32rem;margin:0 auto;line-height:1.7;font-family:'Montserrat',sans-serif;">Everything you need to manage patient care efficiently.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2.5rem;margin-bottom:6rem;">
+      {% for f in features %}
+      <div class="card-premium animate-fade-in-up" style="padding:3rem;animation-delay:{{ forloop.counter0 }}00ms;">
+        <div style="width:4rem;height:4rem;border-radius:1.5rem;background:{{f.bg}};display:flex;align-items:center;justify-content:center;margin-bottom:2rem;">
+          <i data-lucide="{{f.icon}}" style="width:2rem;height:2rem;color:{{f.color}};"></i>
+        </div>
+        <h3 style="font-size:1.5rem;font-weight:800;color:#111827;margin-bottom:1rem;letter-spacing:-0.03em;font-family:'Manrope',sans-serif;">{{ f.title }}</h3>
+        <p style="font-size:0.95rem;color:#6B7280;line-height:1.8;">{{ f.desc }}</p>
       </div>
-      <div style="position:relative;z-index:1;max-width:48rem;margin:0 auto;">
-        <h2 style="font-size:clamp(3rem,6vw,6rem);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-0.05em;line-height:0.85;color:white;margin-bottom:2.5rem;font-family:'Manrope',sans-serif;">
-          Ready To Get <br> Started?
-        </h2>
-        <p style="font-size:1.25rem;font-weight:500;opacity:0.8;margin-bottom:4rem;line-height:1.7;font-family:'Montserrat',sans-serif;">
-          Join hospitals that are making patient check-in faster and easier with QR cards.
-        </p>
-        <a href="/dashboard/" style="display:inline-flex;align-items:center;gap:1.5rem;background:white;color:#111827;padding:1.5rem 3rem;border-radius:2.5rem;font-size:1.5rem;font-weight:900;text-transform:uppercase;letter-spacing:-0.04em;font-style:italic;box-shadow:0 20px 40px rgba(0,0,0,0.15);transition:transform 0.2s;font-family:'Manrope',sans-serif;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-          Open MediScan <i data-lucide="arrow-right" style="width:2rem;height:2rem;"></i>
-        </a>
+      {% endfor %}
+    </div>
+
+    <div style="text-align:center;">
+       <a href="/features/" class="btn-secondary" style="padding:1rem 2.5rem;border-radius:1rem;font-size:0.7rem;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;">View All Platform Features</a>
+    </div>
+  </div>
+</section>
+
+<!-- ───── CTA Section ───── -->
+<section style="padding:6rem 3rem;">
+  <div class="container">
+    <div style="background:linear-gradient(135deg,#111827,#064E3B);padding:6rem;border-radius:4rem;text-align:center;position:relative;overflow:hidden;box-shadow:0 60px 120px -20px rgba(6,78,59,0.3);" class="animate-fade-in-up">
+      <div style="position:absolute;top:-10rem;right:-10rem;width:30rem;height:30rem;background:rgba(16,185,129,0.1);border-radius:50%;filter:blur(100px);"></div>
+      <h2 style="font-size:clamp(2.5rem,5vw,4.5rem);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-0.04em;color:white;margin-bottom:1.5rem;font-family:'Manrope',sans-serif;position:relative;z-index:2;">Ready to modernize?</h2>
+      <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;margin-bottom:3rem;max-width:32rem;margin-left:auto;margin-right:auto;position:relative;z-index:2;line-height:1.7;font-family:'Montserrat',sans-serif;">Join 150+ hospitals already using MediScan to transform patient care.</p>
+      <div style="position:relative;z-index:2;">
+        <a href="/register/" class="btn-primary" style="background:#fff;color:#064E3B;padding:1.5rem 4rem;border-radius:1.5rem;font-size:0.85rem;">Get Started Now</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ─── Footer ─── -->
-<footer style="padding:6rem 3rem;border-top:1px solid #F3F4F6;">
-  <div class="container" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:3rem;">
-    <div style="display:flex;align-items:center;gap:1rem;">
-      <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:#111827;display:flex;align-items:center;justify-content:center;color:white;">
-        <i data-lucide="qr-code" style="width:20px;height:20px;"></i>
-      </div>
-      <span style="font-size:1.25rem;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-0.04em;color:#111827;font-family:'Manrope',sans-serif;">MediScan</span>
-    </div>
-    <div style="display:flex;gap:3rem;flex-wrap:wrap;">
-      <a href="/modules/" style="font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#9CA3AF;font-family:'Montserrat',sans-serif;transition:color 0.2s;" onmouseover="this.style.color='#111827'" onmouseout="this.style.color='#9CA3AF'">How It Works</a>
-      <a href="/support/"  style="font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#9CA3AF;font-family:'Montserrat',sans-serif;transition:color 0.2s;" onmouseover="this.style.color='#111827'" onmouseout="this.style.color='#9CA3AF'">Get Help</a>
-      <a href="/features/" style="font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;color:#9CA3AF;font-family:'Montserrat',sans-serif;transition:color 0.2s;" onmouseover="this.style.color='#111827'" onmouseout="this.style.color='#9CA3AF'">Privacy</a>
-    </div>
-    <div style="font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;color:#D1D5DB;font-family:'Montserrat',sans-serif;">&copy; 2026 MediScan Healthcare Solutions.</div>
-  </div>
+<footer style="padding:4rem 3rem;border-top:1px solid #F3F4F6;text-align:center;background:#fff;">
+  <p style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.25em;color:#D1D5DB;font-family:'Montserrat',sans-serif;">&copy; 2026 MediScan Healthcare Solutions. All Rights Reserved.</p>
 </footer>
 
 {% block extra_js %}
 <script>
-  // Navbar hide on scroll
-  let lastScroll = 0;
-  const nav = document.getElementById('main-nav');
-  window.addEventListener('scroll', () => {
-    const current = window.scrollY;
-    if (current > lastScroll && current > 150) {
-      nav.style.transform = 'translateY(-100%)';
-      nav.style.transition = 'transform 0.35s ease';
-    } else {
-      nav.style.transform = 'translateY(0)';
-    }
-    lastScroll = current;
-  });
+  // Simple intersection observer for counter animation
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('animate-fade-in-up');
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.animate-fade-in-up').forEach(el => observer.observe(el));
 </script>
 {% endblock %}
-
 {% endblock %}
