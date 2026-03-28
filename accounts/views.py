@@ -141,7 +141,24 @@ class DeleteHospitalAdminView(generics.DestroyAPIView):
         if user_to_delete.role != 'hospital_admin':
             return Response({'error': 'Can only delete hospital admins'}, status=status.HTTP_400_BAD_REQUEST)
         return super().delete(request, *args, **kwargs)
-from rest_framework.views import APIView
+class ResetPasswordAPIView(generics.GenericAPIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        username = request.data.get('username')
+        email = request.data.get('email')
+        new_password = request.data.get('new_password')
+        
+        if not username or not email or not new_password:
+            return Response({'error': 'Please provide all details.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            user = CustomUser.objects.get(username=username, email=email)
+            user.set_password(new_password)
+            user.save()
+            return Response({'status': 'Success', 'message': 'Password has been updated.'})
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'No account found with this username and email.'}, status=status.HTTP_404_NOT_FOUND)
 from django.db.models import Count, Sum
 from hospitals.models import Hospital, MedicineMaster
 from patients.models import Patient

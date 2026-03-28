@@ -88,6 +88,11 @@ class RegisterView(View):
         return render(request, 'frontend/register.html')
 
 
+class ForgotPasswordView(View):
+    def get(self, request):
+        return render(request, 'frontend/forgot_password.html')
+
+
 class FeaturesView(View):
     def get(self, request):
         return render(request, 'frontend/features.html', {'features': FEATURES_DATA})
