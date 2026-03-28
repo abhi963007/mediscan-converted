@@ -11,23 +11,23 @@
 
 {% block content %}
 <div class="page-header">
-  <div><div class="page-header-title">Treatment Desk</div><div class="page-header-sub">Prescribe medicines and log treatment notes</div></div>
+  <div><div class="page-header-title">Clinical Desk</div><div class="page-header-sub">High-efficiency patient treatment & e-prescription suite</div></div>
 </div>
 
-<div class="grid-2">
-  <!-- Search Patient -->
-  <div class="card-premium">
-    <h3 style="font-family:var(--font-display);font-size:1.1rem;font-weight:900;color:#111827;letter-spacing:-0.04em;margin-bottom:1.25rem;">Find Patient</h3>
-    <div class="search-bar" style="margin-bottom:1rem;">
-      <i data-lucide="search" style="width:18px;height:18px;"></i>
-      <input type="text" id="pt-search" placeholder="Search by name or UHID…" oninput="searchPatient(this.value)" />
+<div style="display:grid; grid-template-columns:300px 1fr; gap:1.5rem; align-items:start;">
+  <!-- Compact Sidebar: Patient Directory -->
+  <div class="card-premium" style="padding:1.25rem;">
+    <div style="font-size:0.6rem; font-weight:800; text-transform:uppercase; color:#9CA3AF; margin-bottom:1rem; letter-spacing:0.1em; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="users" style="width:14px;height:14px;"></i> Patient Directory</div>
+    <div class="search-bar" style="margin-bottom:1.25rem; background:#F8FAFC; border-radius:0.75rem; padding:0.625rem 1rem;">
+      <i data-lucide="search" style="width:16px;height:16px;"></i>
+      <input type="text" id="pt-search" placeholder="Search name/UHID…" oninput="searchPatient(this.value)" style="font-size:0.8rem;" />
     </div>
-    <div id="pt-results" style="max-height:300px;overflow-y:auto;"></div>
+    <div id="pt-results" style="max-height:calc(100vh - 280px); overflow-y:auto; padding-right:0.25rem;"></div>
   </div>
 
-  <!-- Treatment Form -->
-  <div class="card-premium" id="treatment-panel">
-    <div class="empty-state"><div class="empty-state-icon">🩺</div><p>Select a patient to begin treatment</p></div>
+  <!-- Primary Workspace: Treatment Form -->
+  <div class="card-premium" id="treatment-panel" style="padding:1.5rem; min-height:600px;">
+    <div class="empty-state" style="padding:8rem 2rem;"><div class="empty-state-icon">🩺</div><p>Identify a patient from the directory to initiate treatment</p></div>
   </div>
 </div>
 {% endblock %}
@@ -35,14 +35,13 @@
 {% block extra_js %}
 <script>
 let selectedPatient = null;
-let medicines = [];
+let selectedMeds = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   const user = requireAuth(['doctor']);
   if (!user) return;
   populateTopbar(user);
 
-  // Check if a specific appointment was linked
   const params = new URLSearchParams(window.location.search);
   const apptId = params.get('appt');
   if (apptId) {
@@ -51,8 +50,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (appt.patient) loadTreatmentForm({ id: appt.patient, full_name: appt.patient_name, uhid: appt.patient_uhid });
     } catch(e) {}
   }
-
-  try { medicines = await Auth.get('/api/hospitals/medicines/'); } catch(e) {}
 });
 
 async function searchPatient(q) {
@@ -60,60 +57,66 @@ async function searchPatient(q) {
   try {
     const patients = await Auth.get('/api/patients/?search=' + encodeURIComponent(q));
     const el = document.getElementById('pt-results');
-    if (!patients.length) { el.innerHTML = '<p style="font-size:0.8rem;color:#9CA3AF;padding:0.5rem;">No patients found.</p>'; return; }
-    el.innerHTML = patients.slice(0,5).map(p => `
-      <div onclick='loadTreatmentForm(${JSON.stringify(p)})' style="padding:0.875rem 1rem;border-radius:0.75rem;cursor:pointer;border:1px solid #F3F4F6;margin-bottom:0.5rem;transition:background 0.15s;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='white'">
-        <div style="font-size:0.875rem;font-weight:700;color:#111827;">${p.full_name||p.username}</div>
-        <div style="font-size:0.65rem;color:#9CA3AF;">${p.uhid||''} · ${p.blood_group||''}</div>
+    if (!patients.length) { el.innerHTML = '<p style="font-size:0.7rem;color:#9CA3AF;padding:1rem;text-align:center;">No matches.</p>'; return; }
+    el.innerHTML = patients.slice(0,10).map(p => `
+      <div onclick='loadTreatmentForm(${JSON.stringify(p)})' style="padding:0.75rem; border-radius:0.75rem; cursor:pointer; border:1px solid #F3F4F6; margin-bottom:0.625rem; transition:all 0.15s; background:white; display:flex; flex-direction:column; gap:0.25rem;" onmouseover="this.style.borderColor='var(--color-primary)';this.style.background='#F9FAFB'" onmouseout="this.style.borderColor='#F3F4F6';this.style.background='white'">
+        <div style="font-size:0.8rem; font-weight:800; color:#111827;">${p.full_name||p.username}</div>
+        <div style="font-size:0.6rem; color:#9CA3AF; font-weight:700;">#${p.uhid||'N/A'} · ${p.gender||''}</div>
       </div>`).join('');
   } catch(e) {}
 }
-
-let selectedMeds = [];
 
 function loadTreatmentForm(patient) {
   selectedPatient = patient;
   selectedMeds = [];
   document.getElementById('treatment-panel').innerHTML = `
-    <div class="qr-card" style="margin-bottom:1.5rem;">
-      <div style="font-size:0.55rem;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;opacity:0.7;margin-bottom:0.375rem;">Now Treating</div>
-      <div style="font-size:1.35rem;font-weight:900;font-style:italic;">${patient.full_name||patient.username}</div>
-      <div style="font-size:0.65rem;opacity:0.7;">${patient.uhid||''}</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; background:#F8FAFC; padding:1rem 1.25rem; border-radius:1rem; border:1px solid #F1F5F9;">
+      <div style="display:flex; align-items:center; gap:1rem;">
+        <div style="width:40px; height:40px; background:var(--color-primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:1.1rem;">${(patient.full_name||'P')[0]}</div>
+        <div>
+          <div style="font-size:1rem; font-weight:900; color:#0F172A; letter-spacing:-0.02em;">${patient.full_name||patient.username}</div>
+          <div style="font-size:0.65rem; color:#64748B; font-weight:700; text-transform:uppercase;">Central ID: ${patient.uhid||'---'}</div>
+        </div>
+      </div>
+      <div class="badge badge-green" style="font-size:0.55rem; padding:0.2rem 0.6rem;">Clinical Session Active</div>
     </div>
 
     <div class="alert alert-error"   id="tx-error"   style="margin-bottom:1rem;"></div>
     <div class="alert alert-success" id="tx-success" style="margin-bottom:1rem;"></div>
 
-    <form onsubmit="saveTreatment(event)" style="display:flex;flex-direction:column;gap:1.25rem;">
-      <div>
-        <label style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:#9CA3AF;margin-bottom:0.5rem;display:block;">Diagnosis & Observations</label>
-        <textarea name="notes" rows="3" placeholder="Symptoms, preliminary diagnosis…" class="input-field" style="resize:vertical;" required></textarea>
+    <form onsubmit="saveTreatment(event)" style="display:flex; flex-direction:column; gap:1.25rem;">
+      <div style="display:grid; grid-template-columns:1fr 220px; gap:1rem;">
+        <div>
+          <label style="font-size:0.6rem; font-weight:800; text-transform:uppercase; color:#9CA3AF; margin-bottom:0.4rem; display:block;">Diagnosis & Clinical Notes</label>
+          <textarea name="notes" rows="3" placeholder="Symptoms, observed conditions, and preliminary diagnosis…" class="input-field" style="resize:none; font-size:0.85rem; height:90px; border-radius:0.75rem;" required></textarea>
+        </div>
+        <div>
+          <label style="font-size:0.6rem; font-weight:800; text-transform:uppercase; color:#9CA3AF; margin-bottom:0.4rem; display:block;">Follow-up Date</label>
+          <input type="date" name="followup" class="input-field" style="height:44px; border-radius:0.75rem;" />
+          <p style="font-size:0.55rem; color:#9CA3AF; margin-top:0.5rem; font-weight:600; font-style:italic;">Schedule future check-up if needed</p>
+        </div>
       </div>
       
-      <div>
-        <label style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:#9CA3AF;margin-bottom:0.75rem;display:block;">Prescription Train</label>
+      <div style="border-top:1px solid #F1F5F9; padding-top:1.25rem;">
+        <label style="font-size:0.6rem; font-weight:800; text-transform:uppercase; color:#9CA3AF; margin-bottom:0.75rem; display:block; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="pill" style="width:14px;height:14px;"></i> Active Prescription Train</label>
         <div style="position:relative; margin-bottom:1.25rem;">
-          <div class="search-bar">
-            <i data-lucide="pill" style="width:18px;height:18px;"></i>
-            <input type="text" id="med-search" placeholder="Search and add medicines to train…" oninput="searchMed(this.value)" autocomplete="off" />
+          <div class="search-bar" style="border-radius:0.75rem; padding:0.6rem 1rem; background:white; border:1px solid var(--color-primary-light);">
+            <i data-lucide="plus-circle" style="width:18px;height:18px;color:var(--color-primary);"></i>
+            <input type="text" id="med-search" placeholder="Type medicine name to add to train…" oninput="searchMed(this.value)" autocomplete="off" style="font-size:0.85rem;" />
           </div>
-          <div id="med-results" style="position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #E5E7EB;border-radius:1rem;z-index:100;box-shadow:var(--shadow-premium);display:none;max-height:280px;overflow-y:auto;margin-top:0.5rem;animation:fadeIn 0.2s ease;"></div>
+          <div id="med-results" style="position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #E2E8F0; border-radius:0.75rem; z-index:100; box-shadow:0 12px 32px -4px rgba(0,0,0,0.1); display:none; max-height:220px; overflow-y:auto; margin-top:0.25rem; animation:fadeIn 150ms ease;"></div>
         </div>
-        <div id="selected-meds-list" style="display:flex; flex-wrap:wrap; gap:1rem; min-height:100px; padding:0.5rem 0;">
-          <div class="empty-state" style="padding:2rem 0; width:100%;"><p style="font-size:0.75rem;opacity:0.5;">No medicines in train yet</p></div>
-        </div>
+        <div id="selected-meds-list"></div>
       </div>
 
-      <div>
-        <label style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:#9CA3AF;margin-bottom:0.5rem;display:block;">Follow-up Date (Optional)</label>
-        <input type="date" name="followup" class="input-field" />
+      <div style="display:flex; justify-content:flex-end; border-top:1px solid #F1F5F9; padding-top:1.25rem; margin-top:0.5rem;">
+        <button type="submit" class="btn-primary" style="padding:0.75rem 2rem; border-radius:0.75rem; font-size:0.85rem; font-weight:800;">
+          <i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> Sign & Finalize Prescription
+        </button>
       </div>
-
-      <button type="submit" class="btn-primary" style="padding:1rem;font-weight:900;">
-        <i data-lucide="save" style="width:18px;height:18px;"></i> Finalize Record
-      </button>
     </form>`;
   if(window.lucide) lucide.createIcons();
+  renderMeds();
 }
 
 async function searchMed(q) {
@@ -123,31 +126,26 @@ async function searchMed(q) {
     const resp = await Auth.get('/api/hospitals/medicines/?search=' + encodeURIComponent(q));
     const matches = resp.results || resp;
     if (!matches.length) {
-      res.innerHTML = '<div style="padding:1rem;text-align:center;font-size:0.75rem;color:#9CA3AF;">No matching drugs in master catalog.</div>';
+      res.innerHTML = '<div style="padding:1.5rem; text-align:center; font-size:0.75rem; color:#9CA3AF;">Drug not found in master catalog.</div>';
     } else {
       res.innerHTML = matches.slice(0, 10).map(m => `
-        <div onclick="addMed(${m.id}, '${m.name.replace(/'/g,"\\'")}', '${m.generic_name||''}', '${m.strength||''}')" 
-             style="padding:0.75rem 1.25rem;border-bottom:1px solid #F3F4F6;cursor:pointer;display:flex;justify-content:space-between;align-items:center;" 
+        <div onclick="addMed(${m.id}, '${m.name.replace(/'/g,"\\'")}', '${m.generic_name||''}', '${m.strength||''}', '${m.medicine_type||''}')" 
+             style="padding:0.875rem 1.25rem; border-bottom:1px solid #F8FAFC; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" 
              onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='white'">
           <div style="flex:1;">
-            <div style="font-size:0.85rem;font-weight:800;color:#111827;">${m.name}</div>
-            <div style="font-size:0.65rem;color:#9CA3AF;">${m.generic_name||'—'} · ${m.strength||''}</div>
+            <div style="font-size:0.85rem; font-weight:800; color:#1e293b;">${m.name}</div>
+            <div style="font-size:0.6rem; color:#94a3b8; font-weight:700; text-transform:uppercase;">${m.generic_name||'---'} · ${m.strength||''}</div>
           </div>
-          <span class="badge badge-gray" style="font-size:0.6rem;text-transform:uppercase;">${m.medicine_type||'tablet'}</span>
+          <span class="badge badge-gray" style="font-size:0.55rem; padding:0.15rem 0.5rem;">${m.medicine_type||'D'}</span>
         </div>`).join('');
     }
     res.style.display = 'block';
-  } catch(e) {
-    res.style.display = 'none';
-  }
+  } catch(e) { res.style.display = 'none'; }
 }
 
-function addMed(id, name, generic, strength) {
-  if (selectedMeds.find(m => m.id === id)) {
-    showToast('Medicine already added to prescription.');
-    return;
-  }
-  selectedMeds.push({ id, name, generic, strength, dosage: '1-0-1' });
+function addMed(id, name, generic, strength, type) {
+  if (selectedMeds.find(m => m.id === id)) { showToast('Already in prescription.'); return; }
+  selectedMeds.push({ id, name, generic, strength, type, dosage: '1-0-1' });
   renderMeds();
   document.getElementById('med-search').value = '';
   document.getElementById('med-results').style.display = 'none';
@@ -167,24 +165,39 @@ function updateDosage(id, val) {
 function renderMeds() {
   const wrap = document.getElementById('selected-meds-list');
   if (!selectedMeds.length) {
-    wrap.innerHTML = '<p style="font-size:0.75rem;color:#9CA3AF;font-style:italic;">No medicines prescribed yet.</p>';
+    wrap.innerHTML = '<div style="background:#F9FAFB; border:1px dashed #E2E8F0; border-radius:0.75rem; padding:1.5rem; text-align:center;"><p style="font-size:0.7rem; color:#94a3b8; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">No medications in train</p></div>';
     return;
   }
-  wrap.innerHTML = selectedMeds.map(m => `
-    <div style="background:white; border:1px solid #E5E7EB; border-radius:1rem; padding:1rem; display:flex; flex-direction:column; gap:0.75rem; position:relative; box-shadow:0 1px 2px rgba(0,0,0,0.05); min-width:240px; flex:1 1 300px;">
-      <button type="button" onclick="removeMed(${m.id})" style="position:absolute; top:0.75rem; right:0.75rem; width:24px; height:24px; border-radius:50%; border:none; background:#FEE2E2; color:#EF4444; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">&times;</button>
-      <div>
-        <div style="font-size:0.9rem; font-weight:900; color:#111827; margin-right:2rem;">${m.name}</div>
-        <div style="font-size:0.65rem; color:#9CA3AF;">${m.strength || ''} ${m.generic || ''}</div>
-      </div>
-      <div>
-        <label style="font-size:0.6rem; font-weight:800; color:#9CA3AF; text-transform:uppercase; margin-bottom:0.25rem; display:block;">Dosage Instructions</label>
-        <input type="text" value="${m.dosage}" oninput="updateDosage(${m.id}, this.value)" 
-               style="width:100%; border:1px solid #F3F4F6; background:#F9FAFB; border-radius:0.5rem; padding:0.5rem 0.75rem; font-size:0.75rem; font-weight:700; color:var(--color-primary);" 
-               placeholder="e.g. 1-0-1 after food" />
-      </div>
-    </div>
-  `).join('');
+  wrap.innerHTML = `
+    <div style="width:100%; background:white; border:1px solid #E2E8F0; border-radius:0.75rem; overflow:hidden;">
+      <table style="width:100%; border-collapse:collapse; font-size:0.75rem;">
+        <thead style="background:#F8FAFC; border-bottom:1px solid #E2E8F0;">
+          <tr>
+            <th style="padding:0.6rem 1rem; text-align:left; color:#64748B; font-weight:800; text-transform:uppercase; font-size:0.55rem; letter-spacing:0.08em;">Medicine Details</th>
+            <th style="padding:0.6rem 1rem; text-align:left; color:#64748B; font-weight:800; text-transform:uppercase; font-size:0.55rem; letter-spacing:0.08em;">Dosage Instruction</th>
+            <th style="padding:0.6rem 1rem; width:40px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${selectedMeds.map(m => `
+            <tr style="border-bottom:1px solid #F1F5F9;">
+              <td style="padding:0.75rem 1rem;">
+                <div style="font-weight:800; color:#1e293b; font-size:0.8rem;">${m.name}</div>
+                <div style="font-size:0.55rem; color:#94a3b8; font-weight:800; text-transform:uppercase;">${m.strength || 'N/A'} · ${m.generic || 'GENERIC'}</div>
+              </td>
+              <td style="padding:0.75rem 1rem;">
+                <input type="text" value="${m.dosage}" oninput="updateDosage(${m.id}, this.value)" 
+                       style="width:100%; border:1px solid #E2E8F0; background:#fff; border-radius:0.5rem; padding:0.4rem 0.75rem; font-size:0.75rem; font-weight:800; color:var(--color-primary); outline:none;" 
+                       placeholder="e.g. 1-0-1 after food" />
+              </td>
+              <td style="padding:0.75rem 1rem; text-align:right;">
+                <button type="button" onclick="removeMed(${m.id})" style="color:#ef4444; font-size:1.2rem; font-weight:800; cursor:pointer;" title="Remove Medicine">&times;</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
 }
 
 async function saveTreatment(e) {
@@ -194,26 +207,26 @@ async function saveTreatment(e) {
   const sucEl = document.getElementById('tx-success');
   errEl.classList.remove('show'); sucEl.classList.remove('show');
   
-  if (!selectedMeds.length) { errEl.textContent = 'Please prescribe at least one medicine.'; errEl.classList.add('show'); return; }
+  if (!selectedMeds.length) { errEl.textContent = 'Prescription must contain at least one medication.'; errEl.classList.add('show'); return; }
 
   try {
-    await Auth.post('/api/patients/' + selectedPatient.id + '/treatment/', {
+    const payload = {
       notes: form.notes.value,
       diagnosis: 'Confirmed Consultation',
-      medicines: selectedMeds,
+      medicines: selectedMeds.map(m => ({ id: m.id, dosage: m.dosage })),
       followup_date: form.followup.value || null
-    });
-    sucEl.textContent = 'Successfully finalized treatment for ' + (selectedPatient.full_name||selectedPatient.username) + '.';
+    };
+    await Auth.post('/api/patients/' + selectedPatient.id + '/treatment/', payload);
+    sucEl.textContent = 'Treatment records updated and finalized.';
     sucEl.classList.add('show');
-    showToast('Treatment finalized!');
+    showToast('Record Finalized');
     form.reset();
     selectedMeds = [];
     renderMeds();
   } catch(err) {
-    const msg = typeof err === 'object' ? Object.values(err).flat().join(' ') : 'Finalization failed.';
+    const msg = typeof err === 'object' ? Object.values(err).flat().join(' ') : 'System error during save.';
     errEl.textContent = msg; errEl.classList.add('show');
   }
 }
-</script>
 </script>
 {% endblock %}
