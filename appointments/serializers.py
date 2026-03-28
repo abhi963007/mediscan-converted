@@ -22,12 +22,18 @@ class AppointmentSerializer(serializers.ModelSerializer):
     doctor_full_name = serializers.CharField(source='doctor.get_full_name', read_only=True)
     hospital_name = serializers.CharField(source='hospital.name', read_only=True)
     slot_time = serializers.SerializerMethodField()
+    patient_uhid = serializers.SerializerMethodField()
     queue = AppointmentQueueSerializer(read_only=True)
 
     class Meta:
         model = Appointment
         fields = '__all__'
         read_only_fields = ('created_at', 'updated_at', 'appointment_id', 'token_number')
+
+    def get_patient_uhid(self, obj):
+        if hasattr(obj.patient, 'patient_profile') and obj.patient.patient_profile:
+            return obj.patient.patient_profile.uhid
+        return "—"
 
     def get_patient_full_name(self, obj):
         if hasattr(obj.patient, 'patient_profile') and obj.patient.patient_profile:

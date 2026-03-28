@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <div style="flex:1;">
           <div style="font-size:0.8rem;font-weight:700;color:#111827;">${a.patient_name || 'Patient'}</div>
-          <div style="font-size:0.65rem;color:#9CA3AF;">${a.doctor_name || '—'} · ${a.slot_time || '—'}</div>
+          <div style="font-size:0.65rem;color:#9CA3AF;">ID: ${a.patient_uhid || '—'} · ${a.slot_time || '—'}</div>
         </div>
         <span class="badge ${a.status==='completed'?'badge-green':a.status==='pending'?'badge-amber':'badge-gray'}">${a.status}</span>
       </div>`).join('');

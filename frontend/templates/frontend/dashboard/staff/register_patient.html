@@ -109,10 +109,18 @@ async function registerPatient(e) {
       gender: form.gender.value, blood_group: form.blood_group.value,
       medical_history: form.medical_history.value, role: 'patient',
     });
-    sucEl.textContent = 'Patient registered successfully! QR card has been generated.';
+    
+    const uhid = res.uhid || (res.patient_profile ? res.patient_profile.uhid : 'GENERA-TED');
+    sucEl.innerHTML = `
+      <div style="font-weight:900;margin-bottom:0.5rem;">Registration Successful!</div>
+      <div style="font-size:0.7rem;background:rgba(255,255,255,0.2);padding:0.75rem;border-radius:0.75rem;">
+        Patient UHID: <strong style="color:white;letter-spacing:1px;">${uhid}</strong>
+      </div>
+      <p style="margin-top:0.5rem;font-size:0.65rem;">QR Health Card has been generated and sent to ${form.email.value}.</p>
+    `;
     sucEl.classList.add('show');
     form.reset();
-    showToast('Patient registered!');
+    showToast('Patient Registered: ' + uhid);
   } catch(err) {
     const msg = typeof err === 'object' ? Object.values(err).flat().join(' | ') : 'Registration failed.';
     errEl.textContent = msg; errEl.classList.add('show');

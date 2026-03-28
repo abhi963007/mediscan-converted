@@ -70,9 +70,10 @@ function renderAppts() {
   const wrap = document.getElementById('appts-wrap');
   if (!data.length) { wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>No appointments found.</p></div>'; return; }
   wrap.innerHTML = `<table class="data-table">
-    <thead><tr><th>Patient</th><th>Doctor</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Patient</th><th>UHID</th><th>Doctor</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>${data.map(a => `<tr>
       <td><strong>${a.patient_name||'Patient'}</strong></td>
+      <td><span class="badge badge-green" style="font-family:'Montserrat',sans-serif;font-size:0.6rem;">${a.patient_uhid||'—'}</span></td>
       <td>${a.doctor_name||'—'}</td>
       <td>${a.slot_time||'—'}</td>
       <td><span class="badge ${a.status==='completed'?'badge-green':a.status==='pending'?'badge-amber':'badge-red'}">${a.status}</span></td>
@@ -81,6 +82,7 @@ function renderAppts() {
       </td>
     </tr>`).join('')}</tbody>
   </table>`;
+  if(window.lucide) lucide.createIcons();
 }
 
 async function markDone(id) {

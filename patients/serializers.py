@@ -65,7 +65,12 @@ class PatientSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Patient
-        fields = '__all__'
+        fields = (
+            'uhid', 'user', 'full_name', 'age', 'gender', 'blood_group', 'phone', 
+            'email', 'address', 'marital_status', 'occupation', 'emergency_contact', 
+            'emergency_contact_phone', 'emergency_contact_relation', 'medical_history',
+            'qr_code', 'consultations', 'documents'
+        )
 
 
 class PatientPersonalUpdateSerializer(serializers.ModelSerializer):
