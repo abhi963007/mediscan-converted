@@ -1,0 +1,95 @@
+{% extends "frontend/base_dashboard.html" %}
+{% block title %}Appointments – MediScan{% endblock %}
+{% block role_label %}Receptionist{% endblock %}
+{% block page_title %}Appointments{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/dashboard/staff/"              class="nav-link"><i data-lucide="building-2" style="width:20px;height:20px;"></i><span class="nav-label">Overview</span></a>
+<a href="/dashboard/staff/register/"     class="nav-link"><i data-lucide="user-plus" style="width:20px;height:20px;"></i><span class="nav-label">Register Patient</span></a>
+<a href="/dashboard/staff/patients/"     class="nav-link"><i data-lucide="users" style="width:20px;height:20px;"></i><span class="nav-label">Patients</span></a>
+<a href="/dashboard/staff/scan/"         class="nav-link"><i data-lucide="scan" style="width:20px;height:20px;"></i><span class="nav-label">Scan Patient Card</span></a>
+<a href="/dashboard/staff/appointments/" class="nav-link" data-exact="true"><i data-lucide="calendar" style="width:20px;height:20px;"></i><span class="nav-label">Appointments</span></a>
+<a href="/dashboard/staff/slots/"        class="nav-link"><i data-lucide="clock" style="width:20px;height:20px;"></i><span class="nav-label">Configure Slots</span></a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><div class="page-header-title">Appointments</div><div class="page-header-sub">View and manage today's appointment queue</div></div>
+  <div style="display:flex;gap:0.75rem;align-items:center;">
+    <input type="date" id="appt-date" class="input-field" style="width:auto;padding:0.5rem 1rem;font-size:0.8rem;" onchange="loadAppointments(this.value)" />
+  </div>
+</div>
+
+<!-- Status tabs -->
+<div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+  <button class="btn-primary" id="tab-all"       onclick="setTab('all')"       style="padding:0.5rem 1.25rem;font-size:0.7rem;">All</button>
+  <button class="btn-secondary" id="tab-pending"   onclick="setTab('pending')"   style="padding:0.5rem 1.25rem;font-size:0.7rem;">Pending</button>
+  <button class="btn-secondary" id="tab-completed" onclick="setTab('completed')" style="padding:0.5rem 1.25rem;font-size:0.7rem;">Completed</button>
+</div>
+
+<div class="card-premium" id="appts-wrap">
+  <div class="empty-state"><div class="empty-state-icon">📅</div><p>Loading appointments…</p></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let allAppts = []; let currentTab = 'all';
+
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireAuth(['receptionist']);
+  if (!user) return;
+  populateTopbar(user);
+  const dateEl = document.getElementById('appt-date');
+  dateEl.value = new Date().toISOString().slice(0, 10);
+  loadAppointments(dateEl.value);
+});
+
+function setTab(tab) {
+  currentTab = tab;
+  ['all','pending','completed'].forEach(t => {
+    const btn = document.getElementById('tab-' + t);
+    btn.className = t === tab ? 'btn-primary' : 'btn-secondary';
+    btn.style.cssText = 'padding:0.5rem 1.25rem;font-size:0.7rem;';
+  });
+  renderAppts();
+}
+
+async function loadAppointments(date) {
+  try {
+    allAppts = await Auth.get('/api/appointments/?date=' + date);
+    if (!Array.isArray(allAppts)) allAppts = [];
+    renderAppts();
+  } catch(e) {
+    document.getElementById('appts-wrap').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Could not load appointments.</p></div>';
+  }
+}
+
+function renderAppts() {
+  const data = currentTab === 'all' ? allAppts : allAppts.filter(a => a.status === currentTab);
+  const wrap = document.getElementById('appts-wrap');
+  if (!data.length) { wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>No appointments found.</p></div>'; return; }
+  wrap.innerHTML = `<table class="data-table">
+    <thead><tr><th>Patient</th><th>Doctor</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${data.map(a => `<tr>
+      <td><strong>${a.patient_name||'Patient'}</strong></td>
+      <td>${a.doctor_name||'—'}</td>
+      <td>${a.slot_time||'—'}</td>
+      <td><span class="badge ${a.status==='completed'?'badge-green':a.status==='pending'?'badge-amber':'badge-red'}">${a.status}</span></td>
+      <td>
+        ${a.status==='pending'?`<button class="btn-secondary" style="padding:0.375rem 0.75rem;font-size:0.65rem;" onclick="markDone(${a.id})">Mark Done</button>`:''}
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+async function markDone(id) {
+  try {
+    await Auth.patch('/api/appointments/' + id + '/', { status: 'completed' });
+    showToast('Marked as completed.'); 
+    const dateEl = document.getElementById('appt-date');
+    await loadAppointments(dateEl.value);
+  } catch(e) { showToast('Failed.', 'error'); }
+}
+</script>
+{% endblock %}

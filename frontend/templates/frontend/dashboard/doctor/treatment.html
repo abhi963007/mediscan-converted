@@ -1,0 +1,131 @@
+{% extends "frontend/base_dashboard.html" %}
+{% block title %}Treatment Desk – MediScan{% endblock %}
+{% block role_label %}Doctor{% endblock %}
+{% block page_title %}Treatment Desk{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/dashboard/doctor/"              class="nav-link"><i data-lucide="stethoscope" style="width:20px;height:20px;"></i><span class="nav-label">Overview</span></a>
+<a href="/dashboard/doctor/appointments/" class="nav-link"><i data-lucide="calendar" style="width:20px;height:20px;"></i><span class="nav-label">Check-ups</span></a>
+<a href="/dashboard/doctor/treatment/"    class="nav-link" data-exact="true"><i data-lucide="heart-pulse" style="width:20px;height:20px;"></i><span class="nav-label">Treatment Desk</span></a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><div class="page-header-title">Treatment Desk</div><div class="page-header-sub">Prescribe medicines and log treatment notes</div></div>
+</div>
+
+<div class="grid-2">
+  <!-- Search Patient -->
+  <div class="card-premium">
+    <h3 style="font-family:var(--font-display);font-size:1.1rem;font-weight:900;color:#111827;letter-spacing:-0.04em;margin-bottom:1.25rem;">Find Patient</h3>
+    <div class="search-bar" style="margin-bottom:1rem;">
+      <i data-lucide="search" style="width:18px;height:18px;"></i>
+      <input type="text" id="pt-search" placeholder="Search by name or UHID…" oninput="searchPatient(this.value)" />
+    </div>
+    <div id="pt-results" style="max-height:300px;overflow-y:auto;"></div>
+  </div>
+
+  <!-- Treatment Form -->
+  <div class="card-premium" id="treatment-panel">
+    <div class="empty-state"><div class="empty-state-icon">🩺</div><p>Select a patient to begin treatment</p></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedPatient = null;
+let medicines = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = requireAuth(['doctor']);
+  if (!user) return;
+  populateTopbar(user);
+
+  // Check if a specific appointment was linked
+  const params = new URLSearchParams(window.location.search);
+  const apptId = params.get('appt');
+  if (apptId) {
+    try {
+      const appt = await Auth.get('/api/appointments/' + apptId + '/');
+      if (appt.patient) loadTreatmentForm({ id: appt.patient, full_name: appt.patient_name, uhid: appt.patient_uhid });
+    } catch(e) {}
+  }
+
+  try { medicines = await Auth.get('/api/hospitals/medicines/'); } catch(e) {}
+});
+
+async function searchPatient(q) {
+  if (!q || q.length < 2) { document.getElementById('pt-results').innerHTML = ''; return; }
+  try {
+    const patients = await Auth.get('/api/patients/?search=' + encodeURIComponent(q));
+    const el = document.getElementById('pt-results');
+    if (!patients.length) { el.innerHTML = '<p style="font-size:0.8rem;color:#9CA3AF;padding:0.5rem;">No patients found.</p>'; return; }
+    el.innerHTML = patients.slice(0,5).map(p => `
+      <div onclick='loadTreatmentForm(${JSON.stringify(p)})' style="padding:0.875rem 1rem;border-radius:0.75rem;cursor:pointer;border:1px solid #F3F4F6;margin-bottom:0.5rem;transition:background 0.15s;" onmouseover="this.style.background='#F9FAFB'" onmouseout="this.style.background='white'">
+        <div style="font-size:0.875rem;font-weight:700;color:#111827;">${p.full_name||p.username}</div>
+        <div style="font-size:0.65rem;color:#9CA3AF;">${p.uhid||''} · ${p.blood_group||''}</div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+function loadTreatmentForm(patient) {
+  selectedPatient = patient;
+  document.getElementById('treatment-panel').innerHTML = `
+    <div class="qr-card" style="margin-bottom:1.5rem;">
+      <div style="font-size:0.55rem;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;opacity:0.7;margin-bottom:0.375rem;">Now Treating</div>
+      <div style="font-size:1.35rem;font-weight:900;font-style:italic;">${patient.full_name||patient.username}</div>
+      <div style="font-size:0.65rem;opacity:0.7;">${patient.uhid||''}</div>
+    </div>
+
+    <div class="alert alert-error"   id="tx-error"   style="margin-bottom:1rem;"></div>
+    <div class="alert alert-success" id="tx-success" style="margin-bottom:1rem;"></div>
+
+    <form onsubmit="saveTreatment(event)" style="display:flex;flex-direction:column;gap:1rem;">
+      <div>
+        <label style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#9CA3AF;display:block;margin-bottom:0.375rem;">Diagnosis / Notes</label>
+        <textarea name="notes" rows="4" placeholder="Symptoms, diagnosis, observations…" class="input-field" style="resize:vertical;" required></textarea>
+      </div>
+      <div>
+        <label style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#9CA3AF;display:block;margin-bottom:0.375rem;">Prescribe Medicine</label>
+        <select name="medicine" class="input-field">
+          <option value="">Select medicine…</option>
+          ${medicines.map(m => `<option value="${m.id}">${m.name}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#9CA3AF;display:block;margin-bottom:0.375rem;">Dosage Instructions</label>
+        <input type="text" name="dosage" placeholder="e.g. 1 tablet twice daily for 5 days" class="input-field" />
+      </div>
+      <div>
+        <label style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#9CA3AF;display:block;margin-bottom:0.375rem;">Follow-up Date</label>
+        <input type="date" name="followup" class="input-field" />
+      </div>
+      <button type="submit" class="btn-primary" style="padding:1rem;">
+        <i data-lucide="save" style="width:16px;height:16px;"></i> Save Treatment Record
+      </button>
+    </form>`;
+  if(window.lucide) lucide.createIcons();
+}
+
+async function saveTreatment(e) {
+  e.preventDefault();
+  const form = e.target;
+  const errEl = document.getElementById('tx-error');
+  const sucEl = document.getElementById('tx-success');
+  errEl.classList.remove('show'); sucEl.classList.remove('show');
+  try {
+    await Auth.post('/api/patients/' + selectedPatient.id + '/treatment/', {
+      notes: form.notes.value, medicine: form.medicine.value || null,
+      dosage: form.dosage.value, followup_date: form.followup.value || null,
+    });
+    sucEl.textContent = 'Treatment record saved for ' + (selectedPatient.full_name||selectedPatient.username) + '.';
+    sucEl.classList.add('show');
+    showToast('Treatment saved!');
+  } catch(err) {
+    const msg = typeof err === 'object' ? Object.values(err).flat().join(' ') : 'Failed to save.';
+    errEl.textContent = msg; errEl.classList.add('show');
+  }
+}
+</script>
+{% endblock %}

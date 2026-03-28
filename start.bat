@@ -1,9 +1,21 @@
 @echo off
-echo Starting MediScan HMS Development Servers...
+echo ============================================
+echo   MediScan HMS - Django Template Server
+echo ============================================
+echo.
 
-REM Start Django Backend via a new Terminal Window
-start cmd /k "python manage.py runserver"
+cd /d "%~dp0"
 
-REM Start Vite React Frontend via the current Terminal
-echo Starting Frontend UI...
-npm run dev
+echo [1/2] Starting Django backend + frontend...
+echo       http://127.0.0.1:8000
+echo.
+start python manage.py runserver
+
+timeout /t 2 /nobreak > nul
+echo [2/2] Opening browser...
+start http://127.0.0.1:8000
+
+echo.
+echo MediScan is running at http://127.0.0.1:8000
+echo Press Ctrl+C in the Django window to stop.
+pause

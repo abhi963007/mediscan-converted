@@ -1,0 +1,83 @@
+{% extends "frontend/base_dashboard.html" %}
+{% block title %}Health Card – MediScan{% endblock %}
+{% block role_label %}Patient{% endblock %}
+{% block page_title %}Health Card{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/dashboard/patient/"         class="nav-link" data-exact="true"><i data-lucide="scan" style="width:20px;height:20px;"></i><span class="nav-label">Health Card</span></a>
+<a href="/dashboard/patient/book/"    class="nav-link"><i data-lucide="calendar" style="width:20px;height:20px;"></i><span class="nav-label">Book Appointment</span></a>
+<a href="/dashboard/patient/history/" class="nav-link"><i data-lucide="heart-pulse" style="width:20px;height:20px;"></i><span class="nav-label">Medical History</span></a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><div class="page-header-title">Health Card</div><div class="page-header-sub">Your personal MediScan QR health card</div></div>
+</div>
+<div class="grid-2">
+  <div>
+    <div class="qr-card" style="margin-bottom:1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-size:0.55rem;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;opacity:0.7;margin-bottom:0.75rem;">MediScan Health Card</div>
+          <div style="font-size:1.75rem;font-weight:900;font-style:italic;letter-spacing:-0.04em;" id="card-name">Loading…</div>
+          <div style="font-size:0.7rem;opacity:0.7;margin-top:0.375rem;" id="card-uhid">UHID: —</div>
+        </div>
+        <div style="width:5.5rem;height:5.5rem;background:rgba(255,255,255,0.15);border-radius:1rem;display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="qr-code" style="width:3.5rem;height:3.5rem;color:white;opacity:0.9;"></i>
+        </div>
+      </div>
+      <div style="margin-top:1.5rem;display:flex;gap:0.75rem;flex-wrap:wrap;" id="card-tags"></div>
+    </div>
+    <div class="card-premium">
+      <h4 style="font-family:var(--font-display);font-size:1rem;font-weight:800;color:#111827;letter-spacing:-0.03em;margin-bottom:1.25rem;">Personal Details</h4>
+      <div id="personal-details"><div class="empty-state"><p>Loading…</p></div></div>
+    </div>
+  </div>
+  <div>
+    <div class="card-premium" style="margin-bottom:1.5rem;">
+      <h4 style="font-family:var(--font-display);font-size:1rem;font-weight:800;color:#111827;letter-spacing:-0.03em;margin-bottom:1.25rem;">Quick Actions</h4>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <a href="/dashboard/patient/book/" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;border-radius:1rem;background:#F9FAFB;border:1px solid #F3F4F6;text-decoration:none;">
+          <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:#ECFDF5;display:flex;align-items:center;justify-content:center;"><i data-lucide="calendar-plus" style="width:18px;height:18px;color:#0F6E56;"></i></div>
+          <div><div style="font-size:0.875rem;font-weight:700;color:#111827;">Book Appointment</div><div style="font-size:0.7rem;color:#9CA3AF;">Schedule a consultation</div></div>
+        </a>
+        <a href="/dashboard/patient/history/" style="display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;border-radius:1rem;background:#F9FAFB;border:1px solid #F3F4F6;text-decoration:none;">
+          <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:#EFF6FF;display:flex;align-items:center;justify-content:center;"><i data-lucide="heart-pulse" style="width:18px;height:18px;color:#2563EB;"></i></div>
+          <div><div style="font-size:0.875rem;font-weight:700;color:#111827;">Medical History</div><div style="font-size:0.7rem;color:#9CA3AF;">View past treatments</div></div>
+        </a>
+      </div>
+    </div>
+    <div class="card-premium">
+      <h4 style="font-family:var(--font-display);font-size:1rem;font-weight:800;color:#111827;letter-spacing:-0.03em;margin-bottom:1rem;">How to Use</h4>
+      <ul style="display:flex;flex-direction:column;gap:0.75rem;">
+        <li style="display:flex;gap:0.75rem;font-size:0.8rem;color:#6B7280;"><i data-lucide="check-circle" style="width:16px;height:16px;color:#0F6E56;flex-shrink:0;"></i>Show QR code to any MediScan receptionist</li>
+        <li style="display:flex;gap:0.75rem;font-size:0.8rem;color:#6B7280;"><i data-lucide="check-circle" style="width:16px;height:16px;color:#0F6E56;flex-shrink:0;"></i>Book appointments without waiting in queues</li>
+        <li style="display:flex;gap:0.75rem;font-size:0.8rem;color:#6B7280;"><i data-lucide="check-circle" style="width:16px;height:16px;color:#0F6E56;flex-shrink:0;"></i>Your data is encrypted and secure</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = requireAuth(['patient']);
+  if (!user) return;
+  populateTopbar(user);
+  try {
+    const me = await Auth.get('/api/auth/profile/');
+    document.getElementById('card-name').textContent = me.full_name || me.username;
+    document.getElementById('card-uhid').textContent = 'UHID: ' + (me.uhid || 'Not assigned');
+    const tags = document.getElementById('card-tags');
+    [me.blood_group, me.age ? me.age + ' yrs' : null, me.gender].filter(Boolean).forEach(t => {
+      tags.innerHTML += `<span style="background:rgba(255,255,255,0.2);padding:0.3rem 0.875rem;border-radius:999px;font-size:0.6rem;font-weight:800;">${t}</span>`;
+    });
+    document.getElementById('personal-details').innerHTML = [['Phone',me.phone||'—'],['Email',me.email||'—'],['Gender',me.gender||'—'],['Blood',me.blood_group||'—']].map(([k,v])=>`
+      <div style="display:flex;justify-content:space-between;padding:0.625rem 0;border-bottom:1px solid #F9FAFB;">
+        <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#9CA3AF;">${k}</span>
+        <span style="font-size:0.875rem;font-weight:700;color:#111827;">${v}</span>
+      </div>`).join('');
+  } catch(e) { document.getElementById('card-name').textContent = user.username; }
+});
+</script>
+{% endblock %}

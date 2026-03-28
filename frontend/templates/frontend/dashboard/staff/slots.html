@@ -1,0 +1,49 @@
+{% extends "frontend/base_dashboard.html" %}
+{% block title %}Configure Slots – MediScan{% endblock %}
+{% block role_label %}Receptionist{% endblock %}
+{% block page_title %}Configure Slots{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/dashboard/staff/"              class="nav-link"><i data-lucide="building-2" style="width:20px;height:20px;"></i><span class="nav-label">Overview</span></a>
+<a href="/dashboard/staff/register/"     class="nav-link"><i data-lucide="user-plus" style="width:20px;height:20px;"></i><span class="nav-label">Register Patient</span></a>
+<a href="/dashboard/staff/patients/"     class="nav-link"><i data-lucide="users" style="width:20px;height:20px;"></i><span class="nav-label">Patients</span></a>
+<a href="/dashboard/staff/scan/"         class="nav-link"><i data-lucide="scan" style="width:20px;height:20px;"></i><span class="nav-label">Scan Patient Card</span></a>
+<a href="/dashboard/staff/appointments/" class="nav-link"><i data-lucide="calendar" style="width:20px;height:20px;"></i><span class="nav-label">Appointments</span></a>
+<a href="/dashboard/staff/slots/"        class="nav-link" data-exact="true"><i data-lucide="clock" style="width:20px;height:20px;"></i><span class="nav-label">Configure Slots</span></a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><div class="page-header-title">Configure Slots</div><div class="page-header-sub">View available doctor slots for this hospital</div></div>
+</div>
+
+<div class="card-premium" id="slots-wrap">
+  <div class="empty-state"><div class="empty-state-icon">🕐</div><p>Loading slots…</p></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = requireAuth(['receptionist']);
+  if (!user) return;
+  populateTopbar(user);
+  try {
+    const slots = await Auth.get('/api/appointments/slots/');
+    const wrap  = document.getElementById('slots-wrap');
+    if (!slots.length) { wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🕐</div><p>No slots configured yet. Ask your Hospital Admin to add slots.</p></div>'; return; }
+    wrap.innerHTML = `<table class="data-table">
+      <thead><tr><th>Doctor</th><th>Day</th><th>Start</th><th>End</th><th>Max Patients</th></tr></thead>
+      <tbody>${slots.map(s => `<tr>
+        <td><strong>${s.doctor_name||'—'}</strong></td>
+        <td>${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][s.day_of_week]||'All'}</td>
+        <td>${s.start_time}</td><td>${s.end_time}</td>
+        <td><span class="badge badge-green">${s.max_patients||'—'}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } catch(e) {
+    document.getElementById('slots-wrap').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Could not load slots.</p></div>';
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "frontend/base_dashboard.html" %}
+{% block title %}Medical History – MediScan{% endblock %}
+{% block role_label %}Patient{% endblock %}
+{% block page_title %}Medical History{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/dashboard/patient/"         class="nav-link"><i data-lucide="scan" style="width:20px;height:20px;"></i><span class="nav-label">Health Card</span></a>
+<a href="/dashboard/patient/book/"    class="nav-link"><i data-lucide="calendar" style="width:20px;height:20px;"></i><span class="nav-label">Book Appointment</span></a>
+<a href="/dashboard/patient/history/" class="nav-link" data-exact="true"><i data-lucide="heart-pulse" style="width:20px;height:20px;"></i><span class="nav-label">Medical History</span></a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><div class="page-header-title">Medical History</div><div class="page-header-sub">Your complete treatment and prescription records</div></div>
+</div>
+
+<!-- Past conditions -->
+<div class="card-premium" style="margin-bottom:1.5rem;" id="conditions-card" style="display:none;">
+  <h3 style="font-family:var(--font-display);font-size:1.1rem;font-weight:900;color:#111827;letter-spacing:-0.04em;margin-bottom:1rem;">Known Conditions / Allergies</h3>
+  <p id="conditions-text" style="font-size:0.875rem;color:#374151;line-height:1.7;"></p>
+</div>
+
+<!-- Treatment records -->
+<div class="card-premium">
+  <div class="page-header" style="margin-bottom:1.5rem;">
+    <div class="page-header-title" style="font-size:1.1rem;">Treatment Records</div>
+  </div>
+  <div id="history-wrap">
+    <div class="empty-state"><div class="empty-state-icon">💊</div><p>Loading records…</p></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = requireAuth(['patient']);
+  if (!user) return;
+  populateTopbar(user);
+
+  try {
+    const me = await Auth.get('/api/auth/profile/');
+    if (me.medical_history) {
+      const card = document.getElementById('conditions-card');
+      document.getElementById('conditions-text').textContent = me.medical_history;
+      card.style.display = 'block';
+    }
+  } catch(e) {}
+
+  try {
+    const records = await Auth.get('/api/patients/treatment-history/');
+    const el = document.getElementById('history-wrap');
+    if (!records || !records.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No treatment records yet.</p></div>';
+      return;
+    }
+    el.innerHTML = records.map(r => `
+      <div style="border:1px solid #F3F4F6;border-radius:1rem;padding:1.5rem;margin-bottom:1rem;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+          <div>
+            <div style="font-size:0.875rem;font-weight:700;color:#111827;">${r.doctor_name||'Doctor'}</div>
+            <div style="font-size:0.65rem;color:#9CA3AF;margin-top:0.2rem;">${r.date||'—'}</div>
+          </div>
+          ${r.medicine_name ? `<span class="badge badge-blue"><i data-lucide="pill" style="width:10px;height:10px;margin-right:4px;"></i>${r.medicine_name}</span>` : ''}
+        </div>
+        ${r.notes ? `<div style="padding:0.875rem;background:#F9FAFB;border-radius:0.75rem;margin-bottom:0.75rem;">
+          <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#9CA3AF;margin-bottom:0.375rem;">Notes / Diagnosis</div>
+          <p style="font-size:0.8rem;color:#374151;line-height:1.7;">${r.notes}</p>
+        </div>` : ''}
+        ${r.dosage ? `<div style="font-size:0.75rem;color:#6B7280;"><strong>Dosage:</strong> ${r.dosage}</div>` : ''}
+        ${r.followup_date ? `<div style="font-size:0.75rem;color:#0F6E56;margin-top:0.375rem;"><i data-lucide="calendar" style="width:12px;height:12px;display:inline;"></i> Follow-up: ${r.followup_date}</div>` : ''}
+      </div>`).join('');
+    if(window.lucide) lucide.createIcons();
+  } catch(e) {
+    document.getElementById('history-wrap').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Could not load records.</p></div>';
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends "frontend/base_dashboard.html" %}
+{% block title %}Scan QR Card – MediScan{% endblock %}
+{% block role_label %}Receptionist{% endblock %}
+{% block page_title %}Scan Patient Card{% endblock %}
+
+{% block sidebar_nav %}
+<a href="/dashboard/staff/"              class="nav-link"><i data-lucide="building-2" style="width:20px;height:20px;"></i><span class="nav-label">Overview</span></a>
+<a href="/dashboard/staff/register/"     class="nav-link"><i data-lucide="user-plus" style="width:20px;height:20px;"></i><span class="nav-label">Register Patient</span></a>
+<a href="/dashboard/staff/patients/"     class="nav-link"><i data-lucide="users" style="width:20px;height:20px;"></i><span class="nav-label">Patients</span></a>
+<a href="/dashboard/staff/scan/"         class="nav-link" data-exact="true"><i data-lucide="scan" style="width:20px;height:20px;"></i><span class="nav-label">Scan Patient Card</span></a>
+<a href="/dashboard/staff/appointments/" class="nav-link"><i data-lucide="calendar" style="width:20px;height:20px;"></i><span class="nav-label">Appointments</span></a>
+<a href="/dashboard/staff/slots/"        class="nav-link"><i data-lucide="clock" style="width:20px;height:20px;"></i><span class="nav-label">Configure Slots</span></a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><div class="page-header-title">Scan Patient Card</div><div class="page-header-sub">Scan a QR health card or search manually by UHID</div></div>
+</div>
+
+<div class="grid-2">
+  <!-- Scanner / Manual Search -->
+  <div class="card-premium">
+    <h3 style="font-family:var(--font-display);font-size:1.1rem;font-weight:900;color:#111827;letter-spacing:-0.04em;margin-bottom:1.5rem;">Manual UHID Lookup</h3>
+    <div class="search-bar" style="margin-bottom:1.25rem;">
+      <i data-lucide="search" style="width:18px;height:18px;"></i>
+      <input type="text" id="uhid-input" placeholder="Enter UHID (e.g. MS-2024-00142)…" style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:0.8rem;text-transform:uppercase;" />
+    </div>
+    <button onclick="lookupUHID()" class="btn-primary" style="width:100%;padding:0.875rem;">
+      <i data-lucide="search" style="width:16px;height:16px;"></i> Look Up Patient
+    </button>
+
+    <div style="margin:1.5rem 0;display:flex;align-items:center;gap:1rem;">
+      <div style="flex:1;height:1px;background:#F3F4F6;"></div>
+      <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#D1D5DB;">or scan directly</span>
+      <div style="flex:1;height:1px;background:#F3F4F6;"></div>
+    </div>
+
+    <!-- QR Scanner area -->
+    <div id="qr-scan-area" style="background:#F9FAFB;border:2px dashed #D1D5DB;border-radius:1rem;padding:3rem;text-align:center;">
+      <div style="width:4rem;height:4rem;background:#ECFDF5;border-radius:1rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+        <i data-lucide="qr-code" style="width:2rem;height:2rem;color:#0F6E56;"></i>
+      </div>
+      <p style="font-size:0.8rem;color:#9CA3AF;margin-bottom:1.25rem;">Point your camera at the patient's QR health card</p>
+      <button onclick="startScanner()" id="start-scan-btn" class="btn-secondary" style="font-size:0.75rem;">
+        <i data-lucide="camera" style="width:14px;height:14px;"></i> Start Camera Scan
+      </button>
+      <video id="qr-video" style="display:none;width:100%;border-radius:0.75rem;margin-top:1rem;"></video>
+    </div>
+
+    <div class="alert alert-error"   id="scan-error"   style="margin-top:1rem;"></div>
+    <div class="alert alert-success" id="scan-success" style="margin-top:1rem;"></div>
+  </div>
+
+  <!-- Patient result + Book Appointment -->
+  <div>
+    <div class="card-premium" id="patient-result-card" style="display:none;margin-bottom:1.5rem;">
+      <div id="patient-result-body"></div>
+      <div id="slot-section" style="margin-top:1.5rem;display:none;">
+        <h4 style="font-family:var(--font-display);font-size:0.9rem;font-weight:800;color:#111827;margin-bottom:1rem;letter-spacing:-0.03em;">Book Appointment</h4>
+        <select id="slot-select" class="input-field" style="margin-bottom:0.875rem;">
+          <option value="">Select a doctor slot…</option>
+        </select>
+        <button onclick="bookAppointment()" class="btn-primary" style="width:100%;">
+          <i data-lucide="calendar-plus" style="width:16px;height:16px;"></i> Confirm Appointment
+        </button>
+      </div>
+    </div>
+
+    <div class="card-premium">
+      <h4 style="font-family:var(--font-display);font-size:0.9rem;font-weight:800;color:#111827;margin-bottom:1rem;letter-spacing:-0.03em;">Instructions</h4>
+      <ul style="display:flex;flex-direction:column;gap:0.75rem;">
+        {% for tip in "Ask the patient to show their MediScan QR card|Scan the QR code or type the UHID manually|Review patient details and medical history|Select an available doctor slot to book an appointment" %}
+        <li style="display:flex;gap:0.75rem;font-size:0.8rem;color:#6B7280;align-items:flex-start;">
+          <span style="width:1.5rem;height:1.5rem;background:#ECFDF5;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.6rem;font-weight:900;color:#0F6E56;">{{ forloop.counter }}</span>
+          {{ tip }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let foundPatient = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireAuth(['receptionist']);
+  if (user) populateTopbar(user);
+});
+
+async function lookupUHID() {
+  const uhid = document.getElementById('uhid-input').value.trim();
+  if (!uhid) return;
+  const errEl = document.getElementById('scan-error');
+  const sucEl = document.getElementById('scan-success');
+  errEl.classList.remove('show'); sucEl.classList.remove('show');
+
+  try {
+    const patients = await Auth.get('/api/patients/?uhid=' + encodeURIComponent(uhid));
+    const p = Array.isArray(patients) ? patients[0] : patients;
+    if (!p) { errEl.textContent = 'No patient found with UHID: ' + uhid; errEl.classList.add('show'); return; }
+    showPatient(p);
+  } catch(e) {
+    errEl.textContent = 'Lookup failed. Please try again.'; errEl.classList.add('show');
+  }
+}
+
+function showPatient(p) {
+  foundPatient = p;
+  const card = document.getElementById('patient-result-card');
+  const body = document.getElementById('patient-result-body');
+  body.innerHTML = `
+    <div class="qr-card" style="margin-bottom:1.25rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:0.55rem;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;opacity:0.7;margin-bottom:0.5rem;">Patient Found</div>
+          <div style="font-size:1.35rem;font-weight:900;font-style:italic;">${p.full_name||p.username}</div>
+          <div style="font-size:0.65rem;opacity:0.7;">${p.uhid||''}</div>
+        </div>
+        <div style="width:3.5rem;height:3.5rem;background:rgba(255,255,255,0.2);border-radius:0.875rem;display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="check-circle" style="width:2rem;height:2rem;color:rgba(255,255,255,0.9);"></i>
+        </div>
+      </div>
+      <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+        ${p.blood_group?`<span style="background:rgba(255,255,255,0.2);padding:0.25rem 0.625rem;border-radius:999px;font-size:0.55rem;font-weight:800;">${p.blood_group}</span>`:''}
+        ${p.age?`<span style="background:rgba(255,255,255,0.2);padding:0.25rem 0.625rem;border-radius:999px;font-size:0.55rem;font-weight:800;">${p.age} yrs</span>`:''}
+        ${p.gender?`<span style="background:rgba(255,255,255,0.2);padding:0.25rem 0.625rem;border-radius:999px;font-size:0.55rem;font-weight:800;">${p.gender}</span>`:''}
+      </div>
+    </div>
+    ${p.medical_history?`<div style="padding:0.875rem;background:#F9FAFB;border-radius:0.75rem;font-size:0.75rem;color:#374151;"><strong>Medical History:</strong> ${p.medical_history}</div>`:''}`;
+  card.style.display = 'block';
+  loadSlots();
+  if(window.lucide) lucide.createIcons();
+}
+
+async function loadSlots() {
+  const slotSec = document.getElementById('slot-section');
+  const sel     = document.getElementById('slot-select');
+  try {
+    const slots = await Auth.get('/api/appointments/slots/');
+    sel.innerHTML = '<option value="">Select a doctor slot…</option>';
+    slots.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = (s.doctor_name||'Doctor') + ' · ' + s.start_time + '–' + s.end_time;
+      sel.appendChild(opt);
+    });
+    slotSec.style.display = 'block';
+  } catch(e) {}
+}
+
+async function bookAppointment() {
+  const slotId = document.getElementById('slot-select').value;
+  if (!slotId || !foundPatient) { showToast('Select a slot first.', 'error'); return; }
+  try {
+    await Auth.post('/api/appointments/', { patient: foundPatient.id, slot: slotId });
+    showToast('Appointment booked!');
+    document.getElementById('scan-success').textContent = 'Appointment booked for ' + (foundPatient.full_name||foundPatient.username) + '.';
+    document.getElementById('scan-success').classList.add('show');
+  } catch(e) { showToast('Failed to book appointment.', 'error'); }
+}
+
+function startScanner() {
+  showToast('Camera QR scanning requires a library like html5-qrcode. Please use UHID lookup instead.', 'error');
+}
+</script>
+{% endblock %}
