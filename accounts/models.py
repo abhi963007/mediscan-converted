@@ -51,8 +51,11 @@ class CustomUser(AbstractUser):
     )
 
     def save(self, *args, **kwargs):
-        # Auto-approve patients, global admin, and superusers
-        if self.role in ['patient', 'admin'] or self.is_superuser:
+        # Ensure superusers have the 'admin' role and are approved
+        if self.is_superuser:
+            self.role = 'admin'
+            self.is_approved = True
+        elif self.role in ['patient', 'admin']:
             self.is_approved = True
         super().save(*args, **kwargs)
 
