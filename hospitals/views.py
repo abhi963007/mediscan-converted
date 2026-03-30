@@ -131,7 +131,9 @@ class DoctorScheduleViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         if self.request.user.role == 'doctor':
-            serializer.save(doctor=self.request.user)
+            serializer.save(doctor=self.request.user, hospital=self.request.user.hospital)
+        elif self.request.user.hospital:
+            serializer.save(hospital=self.request.user.hospital)
         else:
             serializer.save()
 
@@ -140,14 +142,23 @@ class DoctorLeaveViewSet(viewsets.ModelViewSet):
     queryset = DoctorLeave.objects.all()
     serializer_class = DoctorLeaveSerializer
     permission_classes = [IsAuthenticated]
+    filterset_fields = ['doctor', 'is_approved']
 
     def get_queryset(self):
         user = self.request.user
         if user.role == 'doctor':
             return DoctorLeave.objects.filter(doctor=user)
-        elif user.role in ['hospital_admin', 'admin', 'superuser']:
+        elif user.role in ['hospital_admin', 'admin'] and user.hospital:
+            return DoctorLeave.objects.filter(hospital=user.hospital)
+        elif user.role == 'admin':
             return DoctorLeave.objects.all()
         return DoctorLeave.objects.none()
+
+    def perform_create(self, serializer):
+        if self.request.user.role == 'doctor':
+            serializer.save(doctor=self.request.user, hospital=self.request.user.hospital)
+        else:
+            serializer.save()
 
     @action(detail=True, methods=['post'], url_path='approve-leave')
     def approve_leave(self, request, pk=None):
@@ -200,3 +211,9 @@ class MedicineStockViewSet(viewsets.ModelViewSet):
         if user.hospital:
             return MedicineStock.objects.filter(hospital=user.hospital)
         return MedicineStock.objects.all()
+
+    def perform_create(self, serializer):
+        if self.request.user.hospital:
+            serializer.save(hospital=self.request.user.hospital)
+        else:
+            serializer.save()

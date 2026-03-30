@@ -47,7 +47,7 @@
       <div style="padding:1.25rem;background:#F9FAFB;border-radius:1rem;border:1px solid #F3F4F6;">
         <div style="font-size:0.875rem;font-weight:700;color:#111827;margin-bottom:0.375rem;">Change Password</div>
         <p style="font-size:0.75rem;color:#6B7280;margin-bottom:1rem;">Update your administrator password regularly for security.</p>
-        <a href="/login/" class="btn-secondary" style="font-size:0.75rem;padding:0.625rem 1.25rem;">Update Password</a>
+        <button onclick="openPasswordModal()" class="btn-secondary" style="font-size:0.75rem;padding:0.625rem 1.25rem;">Update Password</button>
       </div>
       <div style="padding:1.25rem;background:#FEF2F2;border-radius:1rem;border:1px solid #FECACA;">
         <div style="font-size:0.875rem;font-weight:700;color:#DC2626;margin-bottom:0.375rem;">Sign Out</div>
@@ -59,23 +59,53 @@
 </div>
 {% endblock %}
 
+{% block modals %}
+<!-- Password Reset Modal -->
+<div class="modal-backdrop" id="password-modal">
+  <div class="modal-box" style="max-width:400px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+      <h3 style="font-family:var(--font-display);font-size:1.1rem;font-weight:900;color:#111827;letter-spacing:-0.04em;">Change Password</h3>
+      <button onclick="closeModal('password-modal')" style="color:#9CA3AF;"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+    </div>
+    <div class="alert alert-error" id="password-error" style="margin-bottom:1rem;font-size:0.75rem;"></div>
+    <form onsubmit="updatePassword(event)" style="display:flex;flex-direction:column;gap:1rem;">
+      <div>
+        <label style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:#6B7280;display:block;margin-bottom:0.375rem;">New Password</label>
+        <input type="password" name="new_password" class="input-field" required />
+      </div>
+      <div>
+        <label style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:#6B7280;display:block;margin-bottom:0.375rem;">Confirm New Password</label>
+        <input type="password" name="confirm_password" class="input-field" required />
+      </div>
+      <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+        <button type="button" class="btn-secondary" style="flex:1;" onclick="closeModal('password-modal')">Cancel</button>
+        <button type="submit" class="btn-primary" style="flex:1;">Update Password</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
 {% block extra_js %}
 <script>
+let currentUser = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
-  const user = requireAuth(['hospital_admin']);
-  if (!user) return;
-  populateTopbar(user);
+  currentUser = requireAuth(['hospital_admin']);
+  if (!currentUser || !currentUser.hospital) return;
+  populateTopbar(currentUser);
+  
   try {
-    const hospitals = await Auth.get('/api/hospitals/');
-    if (hospitals.length) {
-      const h = hospitals[0];
-      document.getElementById('hosp-name').value    = h.name || '';
-      document.getElementById('hosp-address').value = h.address || '';
-      document.getElementById('hosp-phone').value   = h.phone || '';
-      document.getElementById('hosp-email').value   = h.email || '';
-      document.getElementById('settings-form').dataset.id = h.id;
-    }
-  } catch(e) {}
+    // Specifically fetch this hospital's profile details
+    const h = await Auth.get('/api/hospitals/' + currentUser.hospital + '/');
+    document.getElementById('hosp-name').value    = h.name || '';
+    document.getElementById('hosp-address').value = h.address || '';
+    document.getElementById('hosp-phone').value   = h.contact || h.phone || '';
+    document.getElementById('hosp-email').value   = h.email || '';
+    document.getElementById('settings-form').dataset.id = h.id;
+  } catch(e) {
+    console.error('Failed to load profile:', e);
+  }
 });
 
 async function saveSettings(e) {
@@ -85,11 +115,59 @@ async function saveSettings(e) {
   const errEl = document.getElementById('settings-error');
   const sucEl = document.getElementById('settings-success');
   errEl.classList.remove('show'); sucEl.classList.remove('show');
+  
   try {
-    await Auth.patch('/api/hospitals/' + id + '/', { name: form.name.value, address: form.address.value, phone: form.phone.value, email: form.email.value });
+    await Auth.patch('/api/hospitals/' + id + '/', { 
+      name: form.name.value, 
+      address: form.address.value, 
+      contact: form.phone.value, 
+      email: form.email.value 
+    });
     sucEl.textContent = 'Settings saved successfully!'; sucEl.classList.add('show');
+    showToast('Hospital profile updated!');
+    
+    // Refresh topbar and local cache if needed
+    currentUser.hospital_name = form.name.value;
+    localStorage.setItem('ms_user', JSON.stringify(currentUser));
+    populateTopbar(currentUser);
   } catch(err) {
     const msg = typeof err === 'object' ? Object.values(err).flat().join(' ') : 'Failed to save.';
+    errEl.textContent = msg; errEl.classList.add('show');
+  }
+}
+
+function openPasswordModal() {
+  document.getElementById('password-modal').style.display = 'flex';
+  document.getElementById('password-error').classList.remove('show');
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+async function updatePassword(e) {
+  e.preventDefault();
+  const form = e.target;
+  const errEl = document.getElementById('password-error');
+  errEl.classList.remove('show');
+
+  if (form.new_password.value !== form.confirm_password.value) {
+    errEl.textContent = "Passwords do not match.";
+    errEl.classList.add('show');
+    return;
+  }
+
+  try {
+    await Auth.post('/api/auth/reset-password/', {
+      username: currentUser.username,
+      email: currentUser.email,
+      new_password: form.new_password.value
+    });
+    showToast('Password updated successfully!');
+    closeModal('password-modal');
+    form.reset();
+  } catch(err) {
+    const msg = typeof err === 'object' ? Object.values(err).flat().join(' ') : 'Failed to reset password.';
     errEl.textContent = msg; errEl.classList.add('show');
   }
 }

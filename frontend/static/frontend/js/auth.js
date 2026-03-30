@@ -86,7 +86,22 @@ async function handleLogin(e) {
     Auth.setSession(data.access, profile);
     redirectByRole(profile.role);
   } catch (err) {
-    const msg = err?.detail || 'Login failed. Please check your credentials.';
+    console.error('Login Error:', err);
+    let msg = 'An unexpected error occurred. Please try again.';
+    
+    if (err && typeof err === 'object') {
+      if (err.detail) {
+        msg = err.detail;
+        if (msg.includes('No active account found')) {
+          msg = 'Invalid username or password.';
+        }
+      } else if (err.non_field_errors) {
+        msg = err.non_field_errors.join(' ');
+      } else {
+        msg = Object.values(err).flat().join(' | ');
+      }
+    }
+    
     errBox.textContent = msg;
     errBox.classList.add('show');
     btnText.textContent = 'Sign In';

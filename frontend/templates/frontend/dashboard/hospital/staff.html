@@ -82,12 +82,20 @@
     <div class="alert alert-error" id="edit-staff-error" style="margin-bottom:1rem;"></div>
     <form onsubmit="saveEdit(event)" style="display:flex;flex-direction:column;gap:0.875rem;">
       <input type="hidden" name="staff_id" />
+      <input type="hidden" name="role" />
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;">
         <input type="text"   name="first_name"     placeholder="First Name" class="input-field" />
         <input type="text"   name="last_name"      placeholder="Last Name"  class="input-field" />
       </div>
       <input type="text"   name="phone"          placeholder="Phone"     class="input-field" />
-      <input type="text"   name="specialization" placeholder="Specialization" class="input-field" />
+      
+      <div id="edit-spec-group">
+        <input type="text" name="specialization" placeholder="Specialization" class="input-field" />
+      </div>
+      <div id="edit-dept-group">
+        <input type="text" name="department" placeholder="Department" class="input-field" />
+      </div>
+      
       <div style="display:flex;gap:0.875rem;margin-top:0.25rem;">
         <button type="button" class="btn-secondary" style="flex:1;" onclick="closeModal('edit-staff-modal')">Cancel</button>
         <button type="submit" class="btn-primary" style="flex:1;">Save Changes</button>

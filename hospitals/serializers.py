@@ -25,6 +25,7 @@ class DoctorSlotSerializer(serializers.ModelSerializer):
     class Meta:
         model = DoctorSlot
         fields = '__all__'
+        read_only_fields = ('hospital',)
 
 
 class DoctorScheduleSerializer(serializers.ModelSerializer):
@@ -34,6 +35,7 @@ class DoctorScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = DoctorSchedule
         fields = '__all__'
+        read_only_fields = ('hospital', 'doctor')
 
 
 class DoctorLeaveSerializer(serializers.ModelSerializer):
@@ -43,14 +45,14 @@ class DoctorLeaveSerializer(serializers.ModelSerializer):
     class Meta:
         model = DoctorLeave
         fields = '__all__'
-        read_only_fields = ('is_approved', 'approved_by')
+        read_only_fields = ('is_approved', 'approved_by', 'doctor', 'hospital')
 
 
 class MedicineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicine
         fields = '__all__'
-        read_only_fields = ('added_at', 'updated_at')
+        read_only_fields = ('added_at', 'updated_at', 'added_by')
 
 
 # Alias so any code importing MedicineMasterSerializer still works
@@ -64,3 +66,4 @@ class MedicineStockSerializer(serializers.ModelSerializer):
     class Meta:
         model = MedicineStock
         fields = '__all__'
+        read_only_fields = ('hospital',)
