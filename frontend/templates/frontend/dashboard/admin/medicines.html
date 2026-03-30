@@ -184,7 +184,7 @@ async function saveMedicine(e) {
 async function deleteMed(id) {
   if (!confirm('Are you sure you want to remove this medicine? This might affect historic prescriptions.')) return;
   try {
-    await Auth.delete('/api/hospitals/medicines/' + id + '/');
+    await Auth.del('/api/hospitals/medicines/' + id + '/');
     showToast('Medicine removed from system.');
     loadMedicines();
   } catch(e) {

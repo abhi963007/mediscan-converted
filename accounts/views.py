@@ -68,7 +68,7 @@ class CreateHospitalStaffView(generics.CreateAPIView):
         return super().post(request, *args, **kwargs)
 
 class HospitalStaffListView(generics.ListAPIView):
-    serializer_class = UserSerializer
+    serializer_class = HospitalStaffSerializer
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):

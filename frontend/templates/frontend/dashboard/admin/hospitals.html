@@ -38,11 +38,21 @@
     </div>
     <div class="alert alert-error" id="hosp-error" style="margin-bottom:1rem;"></div>
     <form onsubmit="addHospital(event)" style="display:flex;flex-direction:column;gap:1.25rem;">
-      <input type="text" name="name" placeholder="Hospital Name *" required class="input-field" />
-      <input type="text" name="address" placeholder="Address / Location" class="input-field" />
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-        <input type="text" name="phone" placeholder="Contact Phone" class="input-field" />
-        <input type="email" name="email" placeholder="Official Email" class="input-field" />
+        <input type="text" name="name" placeholder="Hospital Name *" required class="input-field" />
+        <select name="hospital_type" class="input-field" style="height:auto;padding:0.75rem;">
+          <option value="general">General Hospital</option>
+          <option value="specialty">Specialty Hospital</option>
+          <option value="clinic">Clinic</option>
+          <option value="teaching">Teaching Hospital</option>
+          <option value="research">Research Hospital</option>
+        </select>
+      </div>
+      <input type="text" name="address" placeholder="Full Street Address *" required class="input-field" />
+      <input type="text" name="location" placeholder="City / Area *" required class="input-field" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <input type="text" name="contact" placeholder="Contact Phone *" required class="input-field" />
+        <input type="email" name="email" placeholder="Official Email *" required class="input-field" />
       </div>
       <div style="display:flex;gap:1rem;margin-top:0.5rem;">
         <button type="button" class="btn-secondary" style="flex:1;" onclick="closeModal('add-hospital-modal')">Cancel</button>
@@ -134,8 +144,12 @@ async function addHospital(e) {
   const errEl = document.getElementById('hosp-error');
   errEl.classList.remove('show');
   const payload = {
-    name: form.name.value, address: form.address.value,
-    phone: form.phone.value, email: form.email.value,
+    name: form.name.value,
+    hospital_type: form.hospital_type.value,
+    address: form.address.value,
+    location: form.location.value,
+    contact: form.contact.value,
+    email: form.email.value,
   };
   try {
     await Auth.post('/api/hospitals/', payload);
@@ -152,7 +166,7 @@ async function addHospital(e) {
 async function deleteHospital(id, name) {
   if (!confirm(`Permanently remove "${name}" and all associated data?`)) return;
   try {
-    await Auth.delete('/api/hospitals/' + id + '/');
+    await Auth.del('/api/hospitals/' + id + '/');
     showToast('Hospital removed.');
     await loadHospitals();
   } catch(e) { showToast('Operation failed.', 'error'); }
@@ -216,7 +230,7 @@ async function addHospitalAdmin(e) {
 async function deleteAdmin(id) {
   if (!confirm('Revoke administrative access for this user?')) return;
   try {
-    await Auth.delete('/api/auth/delete-hospital-admin/' + id + '/');
+    await Auth.del('/api/auth/delete-hospital-admin/' + id + '/');
     showToast('Access revoked.');
     await loadHospitalAdmins(activeHospId);
   } catch(e) { showToast('Operation failed.', 'error'); }

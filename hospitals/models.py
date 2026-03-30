@@ -210,7 +210,9 @@ class Medicine(models.Model):
 
     # Composition
     composition = models.TextField(blank=True, help_text="Active ingredients and quantities")
+    description = models.TextField(blank=True, help_text="General description or notes")
     strength = models.CharField(max_length=100, blank=True, help_text="e.g., 500mg")
+    unit = models.CharField(max_length=50, blank=True, help_text="e.g., Strip, Bottle, Tablet")
 
     # Usage
     standard_dosage = models.TextField(blank=True)

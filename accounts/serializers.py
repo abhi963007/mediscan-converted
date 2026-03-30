@@ -14,7 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'first_name', 'last_name', 'full_name', 'email', 'role', 'is_approved', 'hospital', 'hospital_name')
+        fields = ('id', 'username', 'first_name', 'last_name', 'full_name', 'email', 'phone', 'role', 'is_approved', 'hospital', 'hospital_name')
         read_only_fields = ('is_approved',)
 
     def get_hospital_name(self, obj):
@@ -154,17 +154,17 @@ class HospitalStaffSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='get_full_name', read_only=True)
     
     # Custom fields for profiles
-    specialization = serializers.CharField(required=False, write_only=True)
-    qualification = serializers.CharField(required=False, write_only=True)
-    experience_years = serializers.IntegerField(required=False, write_only=True)
-    registration_number = serializers.CharField(required=False, write_only=True)
-    consultation_fee = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, write_only=True)
-    bio = serializers.CharField(required=False, write_only=True)
-    department = serializers.CharField(required=False, write_only=True)
+    specialization = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    qualification = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    experience_years = serializers.IntegerField(required=False, allow_null=True, write_only=True)
+    registration_number = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    consultation_fee = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True, write_only=True)
+    bio = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    department = serializers.CharField(required=False, allow_blank=True, write_only=True)
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'password', 'first_name', 'last_name', 'full_name', 'email', 'role', 'is_approved', 'hospital',
+        fields = ('id', 'username', 'password', 'first_name', 'last_name', 'full_name', 'email', 'phone', 'role', 'is_approved', 'hospital',
                   'specialization', 'qualification', 'experience_years', 'registration_number', 
                   'consultation_fee', 'bio', 'department')
         read_only_fields = ('is_approved', 'hospital')
@@ -173,14 +173,14 @@ class HospitalStaffSerializer(serializers.ModelSerializer):
         hospital = self.context['request'].user.hospital
         role = validated_data.get('role')
         
-        # Pop profile data
-        spec = validated_data.pop('specialization', '')
-        qual = validated_data.pop('qualification', '')
-        exp = validated_data.pop('experience_years', 0)
-        reg = validated_data.pop('registration_number', '')
-        fee = validated_data.pop('consultation_fee', 0)
-        bio = validated_data.pop('bio', '')
-        dept = validated_data.pop('department', '')
+        # Pop profile data with defaults
+        spec = validated_data.pop('specialization', '') or ''
+        qual = validated_data.pop('qualification', '') or ''
+        exp = validated_data.pop('experience_years', 0) or 0
+        reg = validated_data.pop('registration_number', '') or ''
+        fee = validated_data.pop('consultation_fee', 0) or 0
+        bio = validated_data.pop('bio', '') or ''
+        dept = validated_data.pop('department', '') or ''
 
         if role not in ['doctor', 'receptionist']:
             raise serializers.ValidationError("Only doctors and receptionists can be created.")
@@ -191,7 +191,10 @@ class HospitalStaffSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             role=role,
             hospital=hospital,
-            is_approved=True
+            is_approved=True,
+            phone=validated_data.get('phone', ''),
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', '')
         )
         
         if role == 'doctor':
@@ -212,6 +215,42 @@ class HospitalStaffSerializer(serializers.ModelSerializer):
             )
 
         return user
+
+    def update(self, instance, validated_data):
+        # Handle profile fields with defaults
+        spec = validated_data.pop('specialization', None)
+        qual = validated_data.pop('qualification', None)
+        exp = validated_data.pop('experience_years', None)
+        reg = validated_data.pop('registration_number', None)
+        fee = validated_data.pop('consultation_fee', None)
+        bio = validated_data.pop('bio', None)
+        dept = validated_data.pop('department', None)
+
+        # Update user instance
+        for attr, value in validated_data.items():
+            if attr == 'password':
+                instance.set_password(value)
+            else:
+                setattr(instance, attr, value)
+        instance.save()
+
+        # Update profiles
+        if instance.role == 'doctor':
+            profile, _ = DoctorProfile.objects.get_or_create(user=instance)
+            if spec is not None: profile.specialization = spec or 'other'
+            if qual is not None: profile.qualification = qual
+            if exp is not None: profile.experience_years = exp or 0
+            if reg is not None: profile.registration_number = reg
+            if fee is not None: profile.consultation_fee = fee or 0
+            if bio is not None: profile.bio = bio
+            profile.save()
+        elif instance.role == 'receptionist':
+            profile, _ = StaffProfile.objects.get_or_create(user=instance)
+            if dept is not None: profile.department = dept or 'Reception'
+            if qual is not None: profile.qualification = qual
+            profile.save()
+
+        return instance
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)

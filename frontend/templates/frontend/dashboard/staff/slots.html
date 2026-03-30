@@ -134,7 +134,7 @@ async function handleAddSlot(ev) {
 async function deleteSlot(id) {
   if (!confirm('Are you sure you want to remove this slot?')) return;
   try {
-    await Auth.delete('/api/hospitals/doctor-slots/' + id + '/');
+    await Auth.del('/api/hospitals/doctor-slots/' + id + '/');
     showToast('Slot removed.');
     loadSlots();
   } catch(e) {
