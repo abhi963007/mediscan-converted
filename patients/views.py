@@ -1,6 +1,7 @@
 from rest_framework import viewsets, filters, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.utils import timezone
 from .models import Patient, Consultation, Prescription, PatientDocument
 from .serializers import (
     PatientSerializer, PatientPersonalUpdateSerializer, 
@@ -91,6 +92,25 @@ class PatientViewSet(viewsets.ModelViewSet):
                 dosage=m_data.get('dosage', ''),
                 instructions=m_data.get('dosage', '') # Fallback
             )
+
+        # Complete the appointment — either by explicit ID or by auto-finding the patient's active one
+        from appointments.models import Appointment
+        appt_id = data.get('appointment_id')
+        if appt_id:
+            Appointment.objects.filter(id=appt_id).update(
+                status='completed',
+                check_out_time=timezone.now()
+            )
+        else:
+            # Auto-complete any active appointment for this patient
+            active = Appointment.objects.filter(
+                patient=patient.user,
+                status__in=['pending', 'confirmed', 'checked_in', 'in_progress']
+            ).order_by('-appointment_date', '-time_slot').first()
+            if active:
+                active.status = 'completed'
+                active.check_out_time = timezone.now()
+                active.save()
             
         return Response({'status': 'Success', 'consultation_id': consultation.id})
 
@@ -100,21 +120,39 @@ class PatientViewSet(viewsets.ModelViewSet):
         if not hasattr(user, 'patient_profile'):
              return Response({'error': 'Patient profile not found.'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Get consultations
-        from .models import Consultation
-        qs = Consultation.objects.filter(patient=user.patient_profile).order_by('-consultation_date')
+        from .models import Consultation, Prescription
+        qs = Consultation.objects.filter(patient=user.patient_profile).order_by('-consultation_date').prefetch_related('prescriptions__medicine')
         
-        data = [{
-            'id': c.id,
-            'date': c.consultation_date.strftime('%d %b %Y, %I:%M %p') if c.consultation_date else '—',
-            'doctor_name': c.doctor.get_full_name() if c.doctor else 'Doctor',
-            'notes': c.chief_complaint or '',
-            'diagnosis': c.diagnosis or '',
-            'visit_type': c.visit_type or 'General',
-            'blood_pressure': c.blood_pressure or '—',
-            'temperature': c.temperature or '—',
-            'weight': c.weight or '—'
-        } for c in qs]
+        data = []
+        for c in qs:
+            prescriptions = c.prescriptions.all()
+            if prescriptions.exists():
+                # One record per prescription for easy display
+                for p in prescriptions:
+                    data.append({
+                        'id': c.id,
+                        'date': c.consultation_date.strftime('%d %b %Y, %I:%M %p') if c.consultation_date else '—',
+                        'doctor_name': 'Dr. ' + (c.doctor.get_full_name() or c.doctor.username) if c.doctor else 'Doctor',
+                        'notes': c.chief_complaint or '',
+                        'diagnosis': c.diagnosis or '',
+                        'visit_type': c.visit_type or 'General',
+                        'medicine_name': p.medicine.name if p.medicine else p.medicine_name or '',
+                        'dosage': p.dosage or p.instructions or '',
+                        'follow_up_date': str(c.follow_up_date) if c.follow_up_date else None,
+                    })
+            else:
+                # Consultation with no prescriptions — still show the visit
+                data.append({
+                    'id': c.id,
+                    'date': c.consultation_date.strftime('%d %b %Y, %I:%M %p') if c.consultation_date else '—',
+                    'doctor_name': 'Dr. ' + (c.doctor.get_full_name() or c.doctor.username) if c.doctor else 'Doctor',
+                    'notes': c.chief_complaint or '',
+                    'diagnosis': c.diagnosis or '',
+                    'visit_type': c.visit_type or 'General',
+                    'medicine_name': '',
+                    'dosage': '',
+                    'follow_up_date': str(c.follow_up_date) if c.follow_up_date else None,
+                })
         
         return Response(data)
 

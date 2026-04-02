@@ -124,7 +124,7 @@ async function bookSlot(s) {
         doctor: s.doctor,
         hospital: s.hospital,
         appointment_date: date,
-        time_slot: s.start_time, // Explicitly provide required time_slot
+        time_slot: s.start_time,
         appointment_time: s.start_time,
         consultation_fee: s.consultation_fee,
         appointment_mode: 'online'
@@ -134,30 +134,34 @@ async function bookSlot(s) {
     sucEl.classList.add('show');
     showToast('Appointment booked successfully!');
     loadMyAppointments();
-    // Clear slots list to show success state
     document.getElementById('slots-list').innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>Appointment confirmed. Check your upcoming visits.</p></div>';
   } catch(err) {
-    const msg = typeof err === 'object' ? Object.values(err).flat().join(' ') : 'Booking failed. Try again.';
-    errEl.textContent = msg; errEl.classList.add('show');
+    // Friendly error messages
+    let msg = 'Booking failed. Please try again.';
+    if (err && err.error) msg = err.error;
+    else if (err && typeof err === 'object') msg = Object.values(err).flat().join(' ');
+    errEl.textContent = msg;
+    errEl.classList.add('show');
   }
 }
 
 async function loadMyAppointments() {
   try {
     const appts = await Auth.get('/api/appointments/');
-    const arr   = Array.isArray(appts) ? appts.filter(a => a.status === 'pending') : [];
+    const arr   = Array.isArray(appts) ? appts : [];
     const el    = document.getElementById('upcoming-appts');
-    if (!arr.length) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No upcoming appointments.</p></div>'; return; }
-    el.innerHTML = arr.slice(0,6).map(a => `
+    if (!arr.length) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No appointments yet.</p></div>'; return; }
+    const badgeMap = { pending:'badge-amber', confirmed:'badge-green', checked_in:'badge-blue', in_progress:'badge-blue', completed:'badge-green', cancelled:'badge-red', no_show:'badge-red' };
+    el.innerHTML = arr.slice(0,8).map(a => `
       <div style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0;border-bottom:1px solid #F9FAFB;">
         <div style="width:2rem;height:2rem;border-radius:0.5rem;background:#EFF6FF;display:flex;align-items:center;justify-content:center;">
           <i data-lucide="calendar" style="width:14px;height:14px;color:#2563EB;"></i>
         </div>
         <div style="flex:1;">
-          <div style="font-size:0.8rem;font-weight:700;color:#111827;">${a.doctor_name||'Doctor'}</div>
-          <div style="font-size:0.65rem;color:#9CA3AF;">${a.appointment_date||''} · ${a.slot_time||'—'}</div>
+          <div style="font-size:0.8rem;font-weight:700;color:#111827;">Dr. ${a.doctor_name||'Doctor'}</div>
+          <div style="font-size:0.65rem;color:#9CA3AF;">${a.appointment_date||''} &middot; ${a.slot_time||'—'}</div>
         </div>
-        <span class="badge badge-amber">Pending</span>
+        <span class="badge ${badgeMap[a.status]||'badge-gray'}">${a.status.replace('_',' ')}</span>
       </div>`).join('');
     if(window.lucide) lucide.createIcons();
   } catch(e) {}

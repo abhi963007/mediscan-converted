@@ -36,6 +36,7 @@
 <script>
 let selectedPatient = null;
 let selectedMeds = [];
+let activeApptId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   const user = requireAuth(['doctor']);
@@ -43,11 +44,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   populateTopbar(user);
 
   const params = new URLSearchParams(window.location.search);
-  const apptId = params.get('appt');
-  if (apptId) {
+  activeApptId = params.get('appt');
+  if (activeApptId) {
     try {
-      const appt = await Auth.get('/api/appointments/' + apptId + '/');
-      if (appt.patient) loadTreatmentForm({ uhid: appt.patient_uhid || appt.patient, full_name: appt.patient_name, gender: appt.patient_gender || '' });
+      const appt = await Auth.get('/api/appointments/' + activeApptId + '/');
+      if (appt.patient) await loadTreatmentForm({ uhid: appt.patient_uhid || appt.patient, full_name: appt.patient_name, gender: appt.patient_gender || '', user: appt.patient });
     } catch(e) {}
   }
 });
@@ -66,9 +67,24 @@ async function searchPatient(q) {
   } catch(e) {}
 }
 
-function loadTreatmentForm(patient) {
+async function loadTreatmentForm(patient) {
   selectedPatient = patient;
   selectedMeds = [];
+
+  // Auto-find active appointment for this patient if not already set
+  if (!activeApptId && patient.user) {
+    try {
+      const appts = await Auth.get('/api/appointments/?patient=' + patient.user + '&status=pending');
+      if (Array.isArray(appts) && appts.length > 0) {
+        activeApptId = appts[0].id;
+      }
+    } catch(e) { console.warn('Could not fetch active appointment:', e); }
+  }
+
+  const apptBadge = activeApptId
+    ? `<div class="badge badge-amber" style="font-size:0.55rem;"><i data-lucide="calendar-clock" style="width:10px;height:10px;"></i> Appt #${activeApptId} will be marked complete</div>`
+    : `<div class="badge badge-gray" style="font-size:0.55rem;">Walk-in / No Appointment</div>`;
+
   document.getElementById('treatment-panel').innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; background:#F8FAFC; padding:1rem 1.25rem; border-radius:1rem; border:1px solid #F1F5F9;">
       <div style="display:flex; align-items:center; gap:1rem;">
@@ -78,7 +94,10 @@ function loadTreatmentForm(patient) {
           <div style="font-size:0.75rem; color:var(--color-primary); font-weight:900; letter-spacing:1px; background:rgba(15,110,86,0.05); padding:0.2rem 0.6rem; border-radius:0.5rem; display:inline-block; margin-top:0.3rem;">ENC-ID: ${patient.uhid || 'N/A'}</div>
         </div>
       </div>
-      <div class="badge badge-green" style="font-size:0.55rem; padding:0.2rem 0.6rem;">Clinical Session Active</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.375rem;">
+        <div class="badge badge-green" style="font-size:0.55rem; padding:0.2rem 0.6rem;">Clinical Session Active</div>
+        ${apptBadge}
+      </div>
     </div>
 
     <div class="alert alert-error"   id="tx-error"   style="margin-bottom:1rem;"></div>
@@ -207,26 +226,45 @@ async function saveTreatment(e) {
   const sucEl = document.getElementById('tx-success');
   errEl.classList.remove('show'); sucEl.classList.remove('show');
   
-  if (!selectedMeds.length) { errEl.textContent = 'Prescription must contain at least one medication.'; errEl.classList.add('show'); return; }
+  if (!form.notes.value.trim()) { errEl.textContent = 'Please enter diagnosis / clinical notes.'; errEl.classList.add('show'); return; }
 
   try {
     const payload = {
       notes: form.notes.value,
       diagnosis: 'Confirmed Consultation',
       medicines: selectedMeds.map(m => ({ id: m.id, dosage: m.dosage })),
-      followup_date: form.followup.value || null
+      followup_date: form.followup.value || null,
+      appointment_id: activeApptId
     };
     await Auth.post('/api/patients/' + selectedPatient.uhid + '/treatment/', payload);
-    sucEl.textContent = 'Treatment records updated and finalized.';
-    sucEl.classList.add('show');
-    showToast('Record Finalized');
-    form.reset();
+    // Show session complete UI
+    const patientName = selectedPatient.full_name || selectedPatient.username;
+    document.getElementById('treatment-panel').innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6rem 2rem;text-align:center;">
+        <div style="width:5rem;height:5rem;background:#ECFDF5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;">
+          <i data-lucide="check-circle-2" style="width:2.5rem;height:2.5rem;color:#0F6E56;"></i>
+        </div>
+        <h3 style="font-family:var(--font-display);font-size:1.25rem;font-weight:900;color:#111827;letter-spacing:-0.04em;margin-bottom:0.5rem;">Session Complete</h3>
+        <p style="font-size:0.85rem;color:#6B7280;margin-bottom:2rem;">Treatment record for <strong>${patientName}</strong> has been finalized and saved.</p>
+        <button onclick="startNewSession()" class="btn-primary" style="padding:0.75rem 2rem;">
+          <i data-lucide="user-search" style="width:16px;height:16px;"></i> Start New Session
+        </button>
+      </div>`;
+    showToast('Record Finalized ✔');
+    selectedPatient = null;
     selectedMeds = [];
-    renderMeds();
+    activeApptId = null;
+    document.getElementById('pt-search').value = '';
+    document.getElementById('pt-results').innerHTML = '';
+    if(window.lucide) lucide.createIcons();
   } catch(err) {
-    const msg = typeof err === 'object' ? Object.values(err).flat().join(' ') : 'System error during save.';
+    const msg = err && err.error ? err.error : (typeof err === 'object' ? Object.values(err).flat().join(' ') : 'System error during save.');
     errEl.textContent = msg; errEl.classList.add('show');
   }
+}
+
+function startNewSession() {
+  document.getElementById('treatment-panel').innerHTML = `<div class="empty-state" style="padding:8rem 2rem;"><div class="empty-state-icon">🩺</div><p>Identify a patient from the directory to initiate treatment</p></div>`;
 }
 </script>
 {% endblock %}
