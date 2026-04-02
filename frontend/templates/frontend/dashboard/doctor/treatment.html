@@ -103,9 +103,20 @@ async function loadTreatmentForm(patient) {
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.375rem;">
-        <div class="badge badge-green" style="font-size:0.55rem; padding:0.2rem 0.6rem;">Clinical Session Active</div>
+        <button onclick="toggleHistory()" class="btn-secondary" style="font-size:0.6rem; padding:0.3rem 0.7rem; border-color:var(--color-primary); color:var(--color-primary);">
+          <i data-lucide="history" style="width:12px;height:12px;"></i> View History
+        </button>
         ${apptBadge}
       </div>
+    </div>
+
+    <!-- History Section (Hidden by default) -->
+    <div id="history-section" style="display:none; margin-bottom:1.5rem; animation:fadeIn 0.3s ease;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <div style="font-size:0.75rem; font-weight:800; color:#475569; text-transform:uppercase;">Clinical Timeline</div>
+        <button onclick="toggleHistory()" class="btn-secondary" style="font-size:0.6rem; padding:0.2rem 0.5rem;">&times; Close History</button>
+      </div>
+      <div id="history-content-area"></div>
     </div>
 
     <div class="alert alert-error"   id="tx-error"   style="margin-bottom:1rem;"></div>
@@ -273,6 +284,68 @@ async function saveTreatment(e) {
 
 function startNewSession() {
   document.getElementById('treatment-panel').innerHTML = `<div class="empty-state" style="padding:8rem 2rem;"><div class="empty-state-icon">🩺</div><p>Identify a patient from the directory to initiate treatment</p></div>`;
+}
+
+async function toggleHistory() {
+  const sec = document.getElementById('history-section');
+  const form = document.querySelector('form');
+  if (sec.style.display === 'none') {
+    sec.style.display = 'block';
+    form.style.display = 'none';
+    await updateHistoryView();
+  } else {
+    sec.style.display = 'none';
+    form.style.display = 'flex';
+  }
+}
+
+async function updateHistoryView() {
+  const el = document.getElementById('history-content-area');
+  el.innerHTML = '<div style="padding:2rem; text-align:center; color:#94A3B8;">Syncing records…</div>';
+  try {
+    const data = await Auth.get(`/api/patients/treatment-history/?patient_id=${selectedPatient.uhid}`);
+    const bg = data.background;
+    const history = data.history;
+    
+    let html = `
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1.5rem;">
+        <div style="background:#FEF2F2; padding:0.875rem; border-radius:0.75rem; border:1px solid #FEE2E2;">
+          <div style="font-size:0.55rem; font-weight:800; color:#EF4444; text-transform:uppercase; margin-bottom:0.25rem;">Allergies</div>
+          <div style="font-size:0.75rem; font-weight:700; color:#111827;">${bg.allergies}</div>
+        </div>
+        <div style="background:#FFFBEB; padding:0.875rem; border-radius:0.75rem; border:1px solid #FEF3C7;">
+          <div style="font-size:0.55rem; font-weight:800; color:#D97706; text-transform:uppercase; margin-bottom:0.25rem;">Chronic</div>
+          <div style="font-size:0.75rem; font-weight:700; color:#111827;">${bg.chronic}</div>
+        </div>
+      </div>
+    `;
+
+    if (!history.length) {
+      html += '<div style="padding:2rem; text-align:center; color:#94A3B8; background:#F8FAFC; border-radius:1rem;">No prior consultations found.</div>';
+    } else {
+      html += history.map(r => `
+        <div style="position:relative; padding-left:1.5rem; margin-bottom:1.5rem; border-left:2px solid #E2E8F0;">
+          <div style="position:absolute; left:-6px; top:0; width:10px; height:10px; border-radius:50%; background:var(--color-primary); border:2px solid white;"></div>
+          <div style="display:flex; justify-content:space-between;">
+             <div style="font-size:0.6rem; font-weight:800; color:#94A3B8; text-transform:uppercase;">${r.display_date} &bull; ${r.display_time}</div>
+             <div style="font-size:0.6rem; font-weight:800; color:var(--color-primary);">${r.visit_type}</div>
+          </div>
+          <div style="font-size:0.85rem; font-weight:800; color:#111827; margin:0.25rem 0;">${r.diagnosis || 'Consultation'}</div>
+          <div style="font-size:0.7rem; color:#64748B; margin-bottom:0.4rem;">${r.doctor_name} &bull; ${r.hospital_name}</div>
+          <div style="font-size:0.75rem; color:#475569; line-height:1.4;">${r.notes}</div>
+          ${r.medicines.length ? `
+            <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.5rem;">
+              ${r.medicines.map(m => `<span class="badge badge-gray" style="font-size:0.5rem; padding:0.15rem 0.4rem;">${m.name} (${m.dosage})</span>`).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+    el.innerHTML = html;
+    if(window.lucide) lucide.createIcons();
+  } catch(e) {
+    el.innerHTML = '<div style="padding:2rem; text-align:center; color:#EF4444;">Failed to sync records.</div>';
+  }
 }
 </script>
 {% endblock %}

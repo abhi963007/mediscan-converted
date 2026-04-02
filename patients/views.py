@@ -117,44 +117,59 @@ class PatientViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='treatment-history')
     def treatment_history(self, request):
         user = request.user
-        if not hasattr(user, 'patient_profile'):
+        patient_id = request.query_params.get('patient_id')
+        
+        target_patient = None
+        if patient_id:
+            if user.role not in ['doctor', 'receptionist', 'admin']:
+                return Response({'error': 'Unauthorized to view other patient records.'}, status=status.HTTP_403_FORBIDDEN)
+            target_patient = Patient.objects.filter(uhid=patient_id).first()
+        else:
+            if hasattr(user, 'patient_profile'):
+                target_patient = user.patient_profile
+        
+        if not target_patient:
              return Response({'error': 'Patient profile not found.'}, status=status.HTTP_404_NOT_FOUND)
         
-        from .models import Consultation, Prescription
-        qs = Consultation.objects.filter(patient=user.patient_profile).order_by('-consultation_date').prefetch_related('prescriptions__medicine')
+        from .models import Consultation
+        qs = Consultation.objects.filter(patient=target_patient).order_by('-consultation_date').prefetch_related('prescriptions__medicine')
         
+        # Include patient background in first record or separate header
+        bg_data = {
+            'allergies': target_patient.known_allergies or 'None',
+            'chronic': target_patient.chronic_diseases or 'None',
+            'medical_history': target_patient.medical_history or 'None',
+            'blood_group': target_patient.blood_group
+        }
+
         data = []
         for c in qs:
-            prescriptions = c.prescriptions.all()
-            if prescriptions.exists():
-                # One record per prescription for easy display
-                for p in prescriptions:
-                    data.append({
-                        'id': c.id,
-                        'date': c.consultation_date.strftime('%d %b %Y, %I:%M %p') if c.consultation_date else '—',
-                        'doctor_name': 'Dr. ' + (c.doctor.get_full_name() or c.doctor.username) if c.doctor else 'Doctor',
-                        'notes': c.chief_complaint or '',
-                        'diagnosis': c.diagnosis or '',
-                        'visit_type': c.visit_type or 'General',
-                        'medicine_name': p.medicine.name if p.medicine else p.medicine_name or '',
-                        'dosage': p.dosage or p.instructions or '',
-                        'follow_up_date': str(c.follow_up_date) if c.follow_up_date else None,
-                    })
-            else:
-                # Consultation with no prescriptions — still show the visit
-                data.append({
-                    'id': c.id,
-                    'date': c.consultation_date.strftime('%d %b %Y, %I:%M %p') if c.consultation_date else '—',
-                    'doctor_name': 'Dr. ' + (c.doctor.get_full_name() or c.doctor.username) if c.doctor else 'Doctor',
-                    'notes': c.chief_complaint or '',
-                    'diagnosis': c.diagnosis or '',
-                    'visit_type': c.visit_type or 'General',
-                    'medicine_name': '',
-                    'dosage': '',
-                    'follow_up_date': str(c.follow_up_date) if c.follow_up_date else None,
-                })
+            meds = [{
+                'name': p.medicine.name if p.medicine else p.medicine_name or '',
+                'dosage': p.dosage or p.instructions or '',
+                'type': p.medicine.medicine_type if p.medicine else 'D'
+            } for p in c.prescriptions.all()]
+            
+            data.append({
+                'id': c.id,
+                'date': c.consultation_date.strftime('%Y-%m-%d %H:%M:%S'),
+                'display_date': c.consultation_date.strftime('%d %b %Y'),
+                'display_time': c.consultation_date.strftime('%I:%M %p'),
+                'doctor_name': 'Dr. ' + (c.doctor.get_full_name() or c.doctor.username) if c.doctor else 'Doctor',
+                'hospital_name': c.hospital.name if c.hospital else 'MediScan Hospital',
+                'notes': c.chief_complaint or '',
+                'diagnosis': c.diagnosis or '',
+                'vitals': {
+                    'bp': c.blood_pressure or '—',
+                    'temp': c.temperature or '—',
+                    'weight': c.weight or '—',
+                },
+                'visit_type': c.visit_type or 'General',
+                'medicines': meds,
+                'follow_up_date': str(c.follow_up_date) if c.follow_up_date else None,
+            })
         
-        return Response(data)
+        return Response({'history': data, 'background': bg_data})
 
 
 class ConsultationViewSet(viewsets.ModelViewSet):
