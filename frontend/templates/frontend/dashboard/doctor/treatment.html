@@ -71,7 +71,15 @@ async function loadTreatmentForm(patient) {
   selectedPatient = patient;
   selectedMeds = [];
 
-  // Auto-find active appointment for this patient if not already set
+  // Always reset appointment context for the new patient
+  // (keep URL-provided apptId only if it belongs to this patient)
+  const urlApptId = new URLSearchParams(window.location.search).get('appt');
+  if (!urlApptId) {
+    // Manual search — always clear and re-fetch
+    activeApptId = null;
+  }
+
+  // Auto-find active appointment for this patient
   if (!activeApptId && patient.user) {
     try {
       const appts = await Auth.get('/api/appointments/?patient=' + patient.user + '&status=pending');
