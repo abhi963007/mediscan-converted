@@ -92,13 +92,24 @@ async function lookupUHID(uhidInput) {
   }
 }
 
-function showPatient(p) {
+async function showPatient(p) {
   foundPatient = p;
   const card = document.getElementById('patient-result-card');
   const body = document.getElementById('patient-result-body');
   const scanArea = document.getElementById('qr-scan-area');
+  const slotSec = document.getElementById('slot-section');
   
   if (scanArea) scanArea.style.display = 'none';
+
+  // Check for active appointments
+  const pid = p.user_id || p.user;
+  let activeAppt = null;
+  try {
+    const appts = await Auth.get(`/api/appointments/?patient=${pid}&status=pending`);
+    if (appts && appts.length > 0) {
+      activeAppt = appts[0];
+    }
+  } catch(e) { console.error("Active appt check failed", e); }
 
   body.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
@@ -107,7 +118,7 @@ function showPatient(p) {
           <i data-lucide="refresh-cw" style="width:12px;height:12px;"></i> Scan Another
         </button>
     </div>
-    <div class="qr-card" style="margin-bottom:1.25rem;">
+    <div class="qr-card" style="margin-bottom:1.25rem; ${activeAppt ? 'background: linear-gradient(135deg, #0F6E56 0%, #10b981 100%);' : ''}">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-size:0.55rem;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;opacity:0.7;margin-bottom:0.5rem;">MediScan Verified</div>
@@ -115,7 +126,7 @@ function showPatient(p) {
           <div style="font-size:0.75rem;font-weight:900;letter-spacing:1px;background:rgba(255,255,255,0.2);padding:0.25rem 0.6rem;border-radius:0.5rem;display:inline-block;margin-top:0.3rem;">Verified ID: ${p.uhid || 'GENERIC'}</div>
         </div>
         <div style="width:3.5rem;height:3.5rem;background:rgba(255,255,255,0.2);border-radius:0.875rem;display:flex;align-items:center;justify-content:center;">
-          <i data-lucide="check-circle" style="width:2rem;height:2rem;color:rgba(255,255,255,0.9);"></i>
+          <i data-lucide="${activeAppt ? 'calendar-clock' : 'check-circle'}" style="width:2rem;height:2rem;color:rgba(255,255,255,0.9);"></i>
         </div>
       </div>
       <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
@@ -124,9 +135,61 @@ function showPatient(p) {
         ${p.gender?`<span style="background:rgba(255,255,255,0.2);padding:0.25rem 0.625rem;border-radius:999px;font-size:0.55rem;font-weight:800;">${p.gender}</span>`:''}
       </div>
     </div>
-    ${p.medical_history?`<div style="padding:0.875rem;background:#F9FAFB;border-radius:0.75rem;font-size:0.75rem;color:#374151;"><strong>Medical History:</strong> ${p.medical_history}</div>`:''}`;
+    
+    ${activeAppt ? `
+      <div style="padding:1.25rem; background:#FFFBEB; border:1px solid #FEF3C7; border-radius:1rem; margin-top:1rem;">
+        <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+          <div style="width:2.5rem; height:2.5rem; background:#FEF3C7; border-radius:0.75rem; display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="alert-circle" style="width:1.25rem; height:1.25rem; color:#D97706;"></i>
+          </div>
+          <div>
+            <div style="font-size:0.85rem; font-weight:800; color:#92400E;">Active Appointment Found</div>
+            <div style="font-size:0.7rem; color:#B45309; font-weight:600;">Patient already has a pending visit scheduled.</div>
+          </div>
+        </div>
+        <div id="active-appt-edit-section" style="background:white; padding:1.25rem; border-radius:0.75rem; border:1px solid #FEF3C7; display:flex; flex-direction:column; gap:1rem;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div>
+              <div style="font-size:0.6rem; text-transform:uppercase; color:#9CA3AF; font-weight:800; margin-bottom:0.25rem;">Current Doctor</div>
+              <div style="font-size:0.8rem; font-weight:700; color:#111827;">Dr. ${activeAppt.doctor_name || 'Assigned'}</div>
+            </div>
+            <div>
+              <div style="font-size:0.6rem; text-transform:uppercase; color:#9CA3AF; font-weight:800; margin-bottom:0.25rem;">Current Slot</div>
+              <div style="font-size:0.8rem; font-weight:700; color:#111827;">${activeAppt.slot_time || activeAppt.appointment_time || '---'}</div>
+            </div>
+          </div>
+          <div style="border-top:1px dashed #E2E8F0; padding-top:1rem;">
+             <label style="font-size:0.65rem; font-weight:800; color:#4B5563; margin-bottom:0.5rem; display:block;">CHANGE SLOT (EDIT):</label>
+             <div style="display:grid; grid-template-columns:1fr auto; gap:0.5rem;">
+               <select id="edit-slot-select" class="input-field" style="font-size:0.8rem; height:38px;">
+                 <option value="">Select new slot list…</option>
+               </select>
+               <button onclick="updateAppointment(${activeAppt.id})" class="btn-primary" style="background:#D97706; padding:0.5rem 1rem; font-size:0.75rem;">
+                 <i data-lucide="save" style="width:14px;height:14px;"></i> Update
+               </button>
+               <button onclick="deleteAppointment(${activeAppt.id})" class="btn-secondary" style="padding:0.5rem 1rem; font-size:0.75rem; color:#EF4444; border-color:#FEE2E2;">
+                 <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete
+               </button>
+             </div>
+          </div>
+        </div>
+        <a href="/dashboard/staff/appointments/" class="btn-secondary" style="width:100%; margin-top:1rem; justify-content:center; border-color:#FEF3C7; color:#B45309;">
+          <i data-lucide="list" style="width:14px;height:14px;"></i> View All Appointments
+        </a>
+      </div>
+    ` : ''}
+
+    ${p.medical_history && !activeAppt ? `<div style="padding:0.875rem;background:#F9FAFB;border-radius:0.75rem;font-size:0.75rem;color:#374151;"><strong>Medical History:</strong> ${p.medical_history}</div>` : ''}`;
+    
   card.style.display = 'block';
-  loadSlots();
+  
+  if (!activeAppt) {
+    loadSlots('slot-select');
+  } else {
+    slotSec.style.display = 'none';
+    loadSlots('edit-slot-select');
+  }
+  
   if(window.lucide) lucide.createIcons();
 }
 
@@ -137,9 +200,10 @@ function resetScanner() {
   startScanner();
 }
 
-async function loadSlots() {
+async function loadSlots(selectId = 'slot-select') {
   const slotSec = document.getElementById('slot-section');
-  const sel     = document.getElementById('slot-select');
+  const sel     = document.getElementById(selectId);
+  if (!sel) return;
   try {
     const slots = await Auth.get('/api/hospitals/doctor-slots/');
     sel.innerHTML = '<option value="">Select a doctor slot…</option>';
@@ -149,8 +213,46 @@ async function loadSlots() {
       opt.textContent = (s.doctor_name||'Doctor') + ' (' + (s.hospital_name||'Hosp') + ') · ' + s.start_time.substring(0,5);
       sel.appendChild(opt);
     });
-    slotSec.style.display = 'block';
+    if (selectId === 'slot-select') slotSec.style.display = 'block';
   } catch(e) {}
+}
+
+async function updateAppointment(apptId) {
+  const slotData = document.getElementById('edit-slot-select').value;
+  if (!slotData) { showToast('Select a new slot first.', 'error'); return; }
+  
+  try {
+    const s = JSON.parse(slotData);
+    const payload = {
+        doctor: s.doctor,
+        hospital: s.hospital,
+        time_slot: s.start_time,
+        appointment_time: s.start_time,
+        consultation_fee: s.consultation_fee
+    };
+    await Auth.patch(`/api/appointments/${apptId}/`, payload);
+    showToast('Appointment updated successfully!');
+    document.getElementById('scan-success').textContent = 'Appointment updated for ' + (foundPatient.full_name||foundPatient.username);
+    document.getElementById('scan-success').classList.add('show');
+    document.getElementById('patient-result-card').style.display = 'none';
+    setTimeout(resetScanner, 3000);
+  } catch(e) { 
+    showToast('Failed to update. ' + (e.error || ''), 'error'); 
+  }
+}
+
+async function deleteAppointment(apptId) {
+  if (!confirm('Are you sure you want to permanently delete this appointment?')) return;
+  try {
+    await Auth.del('/api/appointments/' + apptId + '/');
+    showToast('Appointment deleted successfully.');
+    document.getElementById('scan-success').textContent = 'Appointment deleted.';
+    document.getElementById('scan-success').classList.add('show');
+    document.getElementById('patient-result-card').style.display = 'none';
+    setTimeout(resetScanner, 3000);
+  } catch(e) { 
+    showToast('Failed to delete appointment.', 'error'); 
+  }
 }
 
 async function bookAppointment() {

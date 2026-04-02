@@ -19,11 +19,42 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if not serializer.is_valid():
             print(f"DEBUG: Appointment creation failed validation: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check for existing active appointment
+        patient = request.data.get('patient')
+        if patient:
+            existing = Appointment.objects.filter(
+                patient_id=patient,
+                status__in=['pending', 'confirmed', 'checked_in', 'in_progress']
+            ).first()
+            if existing:
+                return Response(
+                    {'error': f'Patient already has an active appointment ({existing.status}) at {existing.appointment_date} {existing.time_slot}.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
         try:
             return super().create(request, *args, **kwargs)
         except Exception as e:
             print(f"DEBUG: Appointment creation exception: {str(e)}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def destroy(self, request, *args, **kwargs):
+        appt = self.get_object()
+        user = request.user
+        # Only staff roles can delete; patients/doctors should use cancel instead
+        if user.role not in ['receptionist', 'hospital_admin', 'admin']:
+            return Response(
+                {'error': 'Only staff can delete appointments.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        # Receptionist can only delete appointments at their hospital
+        if user.role == 'receptionist' and appt.hospital != user.hospital:
+            return Response(
+                {'error': 'You can only delete appointments at your hospital.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -33,6 +64,16 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         date_param = self.request.query_params.get('date')
         if date_param:
             queryset = queryset.filter(appointment_date=date_param)
+
+        # Patient filtering
+        patient_param = self.request.query_params.get('patient')
+        if patient_param:
+            queryset = queryset.filter(patient_id=patient_param)
+
+        # Status filtering
+        status_param = self.request.query_params.get('status')
+        if status_param:
+            queryset = queryset.filter(status=status_param)
 
         if user.role == 'patient':
             return queryset.filter(patient=user)
