@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (apptId) {
     try {
       const appt = await Auth.get('/api/appointments/' + apptId + '/');
-      if (appt.patient) loadTreatmentForm({ id: appt.patient, full_name: appt.patient_name, uhid: appt.patient_uhid });
+      if (appt.patient) loadTreatmentForm({ uhid: appt.patient_uhid || appt.patient, full_name: appt.patient_name, gender: appt.patient_gender || '' });
     } catch(e) {}
   }
 });
@@ -75,7 +75,7 @@ function loadTreatmentForm(patient) {
         <div style="width:40px; height:40px; background:var(--color-primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:1.1rem;">${(patient.full_name||'P')[0]}</div>
         <div>
           <div style="font-size:1rem; font-weight:900; color:#0F172A; letter-spacing:-0.02em;">${patient.full_name||patient.username}</div>
-          <div style="font-size:0.75rem; color:var(--color-primary); font-weight:900; letter-spacing:1px; background:rgba(15,110,86,0.05); padding:0.2rem 0.6rem; border-radius:0.5rem; display:inline-block; margin-top:0.3rem;">ENC-ID: ${patient.uhid || patient.id || 'N/A'}</div>
+          <div style="font-size:0.75rem; color:var(--color-primary); font-weight:900; letter-spacing:1px; background:rgba(15,110,86,0.05); padding:0.2rem 0.6rem; border-radius:0.5rem; display:inline-block; margin-top:0.3rem;">ENC-ID: ${patient.uhid || 'N/A'}</div>
         </div>
       </div>
       <div class="badge badge-green" style="font-size:0.55rem; padding:0.2rem 0.6rem;">Clinical Session Active</div>
@@ -216,7 +216,7 @@ async function saveTreatment(e) {
       medicines: selectedMeds.map(m => ({ id: m.id, dosage: m.dosage })),
       followup_date: form.followup.value || null
     };
-    await Auth.post('/api/patients/' + selectedPatient.id + '/treatment/', payload);
+    await Auth.post('/api/patients/' + selectedPatient.uhid + '/treatment/', payload);
     sucEl.textContent = 'Treatment records updated and finalized.';
     sucEl.classList.add('show');
     showToast('Record Finalized');
